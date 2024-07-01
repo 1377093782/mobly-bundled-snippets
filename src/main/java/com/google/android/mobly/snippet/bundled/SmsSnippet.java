@@ -38,6 +38,8 @@ import com.google.android.mobly.snippet.event.SnippetEvent;
 import com.google.android.mobly.snippet.rpc.AsyncRpc;
 import com.google.android.mobly.snippet.rpc.Rpc;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.IntStream;
 import org.json.JSONObject;
 
@@ -131,6 +133,7 @@ public class SmsSnippet implements Snippet {
         SnippetEvent result =
                 Utils.waitForSnippetEvent(
                         callbackId, SMS_SENT_EVENT_NAME, DEFAULT_TIMEOUT_MILLISECOND);
+        Map<String, String> txtRecordMap = new HashMap<>();
 
         if (result.getData().containsKey("error")) {
             throw new SmsSnippetException(
