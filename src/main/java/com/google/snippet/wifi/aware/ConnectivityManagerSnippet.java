@@ -55,17 +55,16 @@ public class ConnectivityManagerSnippet implements Snippet {
      */
     public class CustomNetworkCallback extends ConnectivityManager.NetworkCallback {
 
-        String mCallBackId = "";
+        SnippetEvent event;
 
         CustomNetworkCallback(String callBackId) {
-            this.mCallBackId = callBackId;
+            event=new SnippetEvent(callBackId, "onNetWorkCallback");
         }
 
         @Override
         public void onUnavailable() {
             mNetworkCapabilities = null;
-
-            SnippetEvent event = new SnippetEvent(mCallBackId, "onUnavailable");
+            event.getData().putString("method", "onUnavailable");
             EventCache.getInstance().postEvent(event);
         }
 
@@ -74,7 +73,7 @@ public class ConnectivityManagerSnippet implements Snippet {
                                           @NonNull NetworkCapabilities networkCapabilities) {
             mNetwork = network;
             mNetworkCapabilities = networkCapabilities;
-            SnippetEvent event = new SnippetEvent(mCallBackId, "onCapabilitiesChanged");
+            event.getData().putString("method", "onCapabilitiesChanged");
             event.getData().putParcelable("network", network);
             event.getData().putParcelable("networkCapabilities", networkCapabilities);
             EventCache.getInstance().postEvent(event);

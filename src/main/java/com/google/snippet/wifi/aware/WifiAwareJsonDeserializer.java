@@ -64,7 +64,7 @@ public class WifiAwareJsonDeserializer {
     //NetworkRequest specific
     private static final String TRANSPORT_TYPE = "transport_type";
     private static final String CAPABILITY = "capability";
-    private static final String network_specifier = "network_specifier";
+    private static final String NETWORK_SPECIFIER = "network_specifier";
 
 
 
@@ -252,15 +252,20 @@ public class WifiAwareJsonDeserializer {
 
      */
     public static NetworkRequest jsonToNetworkRequest(JSONObject jsonObject) throws JSONException {
-        jsonObject.getJSONObject("")
-        WifiAwareNetworkSpecifier specifier = jsonToWifiAwareNetworkSpecifier(jsonObject);
+
+
         NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
         if (jsonObject.has(TRANSPORT_TYPE)) {
             int transportType = jsonObject.getInt(TRANSPORT_TYPE);
             requestBuilder.addTransportType(transportType);
         }
 
-        requestBuilder.setNetworkSpecifier(specifier);
+        if (jsonObject.has(NETWORK_SPECIFIER)) {
+            JSONObject specifierJsonObject = jsonObject.getJSONObject(NETWORK_SPECIFIER);
+            WifiAwareNetworkSpecifier specifier = jsonToWifiAwareNetworkSpecifier(specifierJsonObject);
+            requestBuilder.setNetworkSpecifier(specifier);
+        }
+
 
         if (jsonObject.has(CAPABILITY)) {
             int capability = jsonObject.getInt(CAPABILITY);
