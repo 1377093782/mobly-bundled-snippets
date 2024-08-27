@@ -84,7 +84,9 @@ public class WifiAwareManagerSnippet implements Snippet {
 
     public WifiAwareManagerSnippet() throws WifiAwareManagerSnippetException {
         mContext = ApplicationProvider.getApplicationContext();
-        PermissionUtils.checkPermissions(mContext, Manifest.permission.ACCESS_WIFI_STATE, Manifest.permission.CHANGE_WIFI_STATE, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.NEARBY_WIFI_DEVICES);
+        PermissionUtils.checkPermissions(mContext, Manifest.permission.ACCESS_WIFI_STATE,
+                Manifest.permission.CHANGE_WIFI_STATE, Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.NEARBY_WIFI_DEVICES);
         mWifiAwareManager = mContext.getSystemService(WifiAwareManager.class);
         checkWifiAwareManager();
         HandlerThread handlerThread = new HandlerThread("Snippet-Aware");
@@ -95,11 +97,16 @@ public class WifiAwareManagerSnippet implements Snippet {
     /**
      * Use {@link WifiAwareManager#attach(AttachCallback, Handler)} to attach to the Wi-Fi Aware.
      */
-    @AsyncRpc(description = "Attach to the Wi-Fi Aware service - enabling the application to " + "create discovery sessions or publish or subscribe to services.")
+    @AsyncRpc(description = "Attach to the Wi-Fi Aware service - enabling the application to "
+            + "create discovery sessions or publish or subscribe to services.")
     public void wifiAwareAttach(String callbackId) throws WifiAwareManagerSnippetException {
         synchronized (mLock) {
             if (mAttachState != AttachState.IDLE) {
-                throw new WifiAwareManagerSnippetException("Attaching multiple Wi-Fi Aware session is not supported now. Wi-Fi Aware" + " is currently attaching or already attached. Please wait for " + "the current operation to complete, or call `wifiAwareDetach` to " + "cancel and re-attach .");
+                throw new WifiAwareManagerSnippetException(
+                        "Attaching multiple Wi-Fi Aware session is not supported now. Wi-Fi Aware"
+                                + " is currently attaching or already attached. Please wait for "
+                                + "the current operation to complete, or call `wifiAwareDetach` to "
+                                + "cancel and re-attach .");
             }
             mAttachState = AttachState.ATTACHING;
         }
@@ -166,7 +173,11 @@ public class WifiAwareManagerSnippet implements Snippet {
         checkWifiAwareManager();
         Characteristics characteristics = mWifiAwareManager.getCharacteristics();
         if (characteristics == null) {
-            throw new WifiAwareManagerSnippetException("Can not get Wi-Fi Aware characteristics. Possible reasons include: 1. The " + "Wi-Fi Aware service is not initialized. Please call " + "attachWifiAware first. 2. The device does not support Wi-Fi Aware." + " Check the device's hardware and driver Wi-Fi Aware support.");
+            throw new WifiAwareManagerSnippetException(
+                    "Can not get Wi-Fi Aware characteristics. Possible reasons include: 1. The "
+                            + "Wi-Fi Aware service is not initialized. Please call "
+                            + "attachWifiAware first. 2. The device does not support Wi-Fi Aware."
+                            + " Check the device's hardware and driver Wi-Fi Aware support.");
 
         }
         return characteristics.isAwarePairingSupported();
@@ -255,7 +266,8 @@ public class WifiAwareManagerSnippet implements Snippet {
 
 
         @Override
-        public void onServiceDiscovered(PeerHandle peerHandle, byte[] serviceSpecificInfo, List<byte[]> matchFilter) {
+        public void onServiceDiscovered(PeerHandle peerHandle, byte[] serviceSpecificInfo,
+                                        List<byte[]> matchFilter) {
             mPeerHandle = peerHandle;
             SnippetEvent event = new SnippetEvent(mCallBackId, "onServiceDiscovered");
             event.getData().putByteArray("serviceSpecificInfo", serviceSpecificInfo);
@@ -275,7 +287,9 @@ public class WifiAwareManagerSnippet implements Snippet {
         }
 
         @Override
-        public void onServiceDiscoveredWithinRange(PeerHandle peerHandle, byte[] serviceSpecificInfo, List<byte[]> matchFilter, int distanceMm) {
+        public void onServiceDiscoveredWithinRange(PeerHandle peerHandle,
+                                                   byte[] serviceSpecificInfo,
+                                                   List<byte[]> matchFilter, int distanceMm) {
             mPeerHandle = peerHandle;
             SnippetEvent event = new SnippetEvent(mCallBackId, "onServiceDiscoveredWithinRange");
             event.getData().putByteArray("serviceSpecificInfo", serviceSpecificInfo);
@@ -330,7 +344,8 @@ public class WifiAwareManagerSnippet implements Snippet {
         }
 
         @Override
-        public void onPairingVerificationSucceed(@NonNull PeerHandle peerHandle, @NonNull String alias) {
+        public void onPairingVerificationSucceed(
+                @NonNull PeerHandle peerHandle, @NonNull String alias) {
             super.onPairingVerificationSucceed(mPeerHandle, alias);
             mPeerHandle = peerHandle;
             SnippetEvent event = new SnippetEvent(mCallBackId, "onPairingVerificationSucceed");
@@ -361,7 +376,8 @@ public class WifiAwareManagerSnippet implements Snippet {
 
     private void checkWifiAwareSession() throws WifiAwareManagerSnippetException {
         if (mWifiAwareSession == null) {
-            throw new WifiAwareManagerSnippetException("Wi-Fi Aware session is not attached. Please call wifiAwareAttach first.");
+            throw new WifiAwareManagerSnippetException(
+                    "Wi-Fi Aware session is not attached. " + "Please call wifiAwareAttach first.");
         }
     }
 
@@ -376,11 +392,14 @@ public class WifiAwareManagerSnippet implements Snippet {
      * @param subscribeConfig Defines the subscription configuration via
      *                        WifiAwareJsonDeserializer.
      */
-    @AsyncRpc(description = "Create a Wi-Fi Aware subscribe discovery session and handle callbacks.")
-    public void wifiAwareSubscribe(String callbackId, SubscribeConfig subscribeConfig) throws JSONException, WifiAwareManagerSnippetException {
+    @AsyncRpc(
+            description = "Create a Wi-Fi Aware subscribe discovery session and handle callbacks.")
+    public void wifiAwareSubscribe(String callbackId, SubscribeConfig subscribeConfig) throws
+            JSONException, WifiAwareManagerSnippetException {
         checkWifiAwareSession();
         Log.v("subscribeConfig: " + subscribeConfig.toString());
-        WifiAwareDiscoverySessionCallback myDiscoverySessionCallback = new WifiAwareDiscoverySessionCallback(callbackId);
+        WifiAwareDiscoverySessionCallback myDiscoverySessionCallback =
+                new WifiAwareDiscoverySessionCallback(callbackId);
         mWifiAwareSession.subscribe(subscribeConfig, myDiscoverySessionCallback, mHandler);
     }
 
@@ -394,10 +413,12 @@ public class WifiAwareManagerSnippet implements Snippet {
      * @param publishConfig Defines the publish configuration via WifiAwareJsonDeserializer.
      */
     @AsyncRpc(description = "Create a Wi-Fi Aware publish discovery session and handle callbacks.")
-    public void wifiAwarePublish(String callbackId, PublishConfig publishConfig) throws JSONException, WifiAwareManagerSnippetException {
+    public void wifiAwarePublish(String callbackId, PublishConfig publishConfig) throws
+            JSONException, WifiAwareManagerSnippetException {
         checkWifiAwareSession();
         Log.v("publishConfig: " + publishConfig.toString());
-        WifiAwareDiscoverySessionCallback myDiscoverySessionCallback = new WifiAwareDiscoverySessionCallback(callbackId);
+        WifiAwareDiscoverySessionCallback myDiscoverySessionCallback =
+                new WifiAwareDiscoverySessionCallback(callbackId);
         mWifiAwareSession.publish(publishConfig, myDiscoverySessionCallback, mHandler);
     }
 
@@ -434,10 +455,12 @@ public class WifiAwareManagerSnippet implements Snippet {
      * @see java.nio.charset.StandardCharsets#UTF_8
      */
     @Rpc(description = "Send a message to a peer using Wi-Fi Aware.")
-    public void wifiAwareSendMessage(int messageId, String message) throws WifiAwareManagerSnippetException {
+    public void wifiAwareSendMessage(int messageId, String message) throws
+            WifiAwareManagerSnippetException {
         // 4. send message & wait for send status
         checkDiscoverySession();
-        mDiscoverySession.sendMessage(mPeerHandle, messageId, message.getBytes(StandardCharsets.UTF_8));
+        mDiscoverySession.sendMessage(mPeerHandle, messageId,
+                message.getBytes(StandardCharsets.UTF_8));
     }
 
     /**
@@ -470,12 +493,16 @@ public class WifiAwareManagerSnippet implements Snippet {
         }
     }
 
-    @AsyncRpc(description = "Create a network specifier to be used when specifying a Aware network request")
-    public String wifiAwareCreateNetworkSpecifier(JSONObject jsonObject) throws JSONException, WifiAwareManagerSnippetException {
+    @Rpc(description = "Create a network specifier to be used when specifying a Aware network "
+            + "request")
+    public String wifiAwareCreateNetworkSpecifier(JSONObject jsonObject) throws JSONException,
+            WifiAwareManagerSnippetException {
         checkDiscoverySession();
         checkPeerHandler();
 //        SnippetEvent event = new SnippetEvent(callBackId, "CreateNetworkSpecifier");
-        WifiAwareNetworkSpecifier specifier = WifiAwareJsonDeserializer.jsonToWifiAwareNetworkSpecifier(mPeerHandle, mDiscoverySession, jsonObject);
+        WifiAwareNetworkSpecifier specifier =
+                WifiAwareJsonDeserializer.jsonToWifiAwareNetworkSpecifier(mPeerHandle,
+                        mDiscoverySession, jsonObject);
         // Step 1: Write the WifiAwareNetworkSpecifier to a Parcel
         Parcel parcel = Parcel.obtain();
         specifier.writeToParcel(parcel, 0);

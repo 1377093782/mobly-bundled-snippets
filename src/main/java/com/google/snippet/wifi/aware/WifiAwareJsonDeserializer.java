@@ -69,8 +69,6 @@ public class WifiAwareJsonDeserializer {
     private static final String TRANSPORT_TYPE = "transport_type";
     private static final String CAPABILITY = "capability";
     private static final String NETWORK_SPECIFIER = "network_specifier";
-    //PeerHandle specific
-    private static final String PEER_ID = "peer_id";
 
 
     private WifiAwareJsonDeserializer() {
@@ -82,20 +80,23 @@ public class WifiAwareJsonDeserializer {
      * @param jsonObject corresponding to SubscribeConfig in
      *                   tests/hostsidetests/multidevices/test/aware/constants.py
      */
-    public static SubscribeConfig jsonToSubscribeConfig(JSONObject jsonObject) throws JSONException {
+    public static SubscribeConfig jsonToSubscribeConfig(JSONObject jsonObject) throws
+            JSONException {
         SubscribeConfig.Builder builder = new SubscribeConfig.Builder();
         if (jsonObject.has(SERVICE_NAME)) {
             String serviceName = jsonObject.getString(SERVICE_NAME);
             builder.setServiceName(serviceName);
         }
         if (jsonObject.has(SERVICE_SPECIFIC_INFO)) {
-            byte[] serviceSpecificInfo = jsonObject.getString(SERVICE_SPECIFIC_INFO).getBytes(StandardCharsets.UTF_8);
+            byte[] serviceSpecificInfo =
+                    jsonObject.getString(SERVICE_SPECIFIC_INFO).getBytes(StandardCharsets.UTF_8);
             builder.setServiceSpecificInfo(serviceSpecificInfo);
         }
         if (jsonObject.has(MATCH_FILTER)) {
             List<byte[]> matchFilter = new ArrayList<>();
             for (int i = 0; i < jsonObject.getJSONArray(MATCH_FILTER).length(); i++) {
-                matchFilter.add(jsonObject.getJSONArray(MATCH_FILTER).getString(i).getBytes(StandardCharsets.UTF_8));
+                matchFilter.add(jsonObject.getJSONArray(MATCH_FILTER).getString(i)
+                        .getBytes(StandardCharsets.UTF_8));
             }
             builder.setMatchFilter(matchFilter);
         }
@@ -104,7 +105,8 @@ public class WifiAwareJsonDeserializer {
             builder.setSubscribeType(subscribeType);
         }
         if (jsonObject.has(TERMINATE_NOTIFICATION_ENABLED)) {
-            boolean terminateNotificationEnabled = jsonObject.getBoolean(TERMINATE_NOTIFICATION_ENABLED);
+            boolean terminateNotificationEnabled =
+                    jsonObject.getBoolean(TERMINATE_NOTIFICATION_ENABLED);
             builder.setTerminateNotificationEnabled(terminateNotificationEnabled);
         }
         if (jsonObject.has(MAX_DISTANCE_MM)) {
@@ -127,7 +129,8 @@ public class WifiAwareJsonDeserializer {
      * @param jsonObject corresponding to SubscribeConfig in
      *                   tests/hostsidetests/multidevices/test/aware/constants.py
      */
-    private static AwarePairingConfig jsonToAwarePairingConfig(JSONObject jsonObject) throws JSONException {
+    private static AwarePairingConfig jsonToAwarePairingConfig(JSONObject jsonObject) throws
+            JSONException {
         AwarePairingConfig.Builder builder = new AwarePairingConfig.Builder();
         if (jsonObject.has(PAIRING_CACHE_ENABLED)) {
             boolean pairingCacheEnabled = jsonObject.getBoolean(PAIRING_CACHE_ENABLED);
@@ -138,7 +141,8 @@ public class WifiAwareJsonDeserializer {
             builder.setPairingSetupEnabled(pairingSetupEnabled);
         }
         if (jsonObject.has(PAIRING_VERIFICATION_ENABLED)) {
-            boolean pairingVerificationEnabled = jsonObject.getBoolean(PAIRING_VERIFICATION_ENABLED);
+            boolean pairingVerificationEnabled =
+                    jsonObject.getBoolean(PAIRING_VERIFICATION_ENABLED);
             builder.setPairingVerificationEnabled(pairingVerificationEnabled);
         }
         if (jsonObject.has(BOOTSTRAPPING_METHODS)) {
@@ -161,13 +165,15 @@ public class WifiAwareJsonDeserializer {
             builder.setServiceName(serviceName);
         }
         if (jsonObject.has(SERVICE_SPECIFIC_INFO)) {
-            byte[] serviceSpecificInfo = jsonObject.getString(SERVICE_SPECIFIC_INFO).getBytes(StandardCharsets.UTF_8);
+            byte[] serviceSpecificInfo =
+                    jsonObject.getString(SERVICE_SPECIFIC_INFO).getBytes(StandardCharsets.UTF_8);
             builder.setServiceSpecificInfo(serviceSpecificInfo);
         }
         if (jsonObject.has(MATCH_FILTER)) {
             List<byte[]> matchFilter = new ArrayList<>();
             for (int i = 0; i < jsonObject.getJSONArray(MATCH_FILTER).length(); i++) {
-                matchFilter.add(jsonObject.getJSONArray(MATCH_FILTER).getString(i).getBytes(StandardCharsets.UTF_8));
+                matchFilter.add(jsonObject.getJSONArray(MATCH_FILTER).getString(i)
+                        .getBytes(StandardCharsets.UTF_8));
             }
             builder.setMatchFilter(matchFilter);
         }
@@ -176,7 +182,8 @@ public class WifiAwareJsonDeserializer {
             builder.setPublishType(publishType);
         }
         if (jsonObject.has(TERMINATE_NOTIFICATION_ENABLED)) {
-            boolean terminateNotificationEnabled = jsonObject.getBoolean(TERMINATE_NOTIFICATION_ENABLED);
+            boolean terminateNotificationEnabled =
+                    jsonObject.getBoolean(TERMINATE_NOTIFICATION_ENABLED);
             builder.setTerminateNotificationEnabled(terminateNotificationEnabled);
         }
         if (jsonObject.has(RANGING_ENABLED)) {
@@ -197,13 +204,16 @@ public class WifiAwareJsonDeserializer {
      * @param jsonObject corresponding to WifiAwareNetworkSpecifier in
      *                   tests/hostsidetests/multidevices/test/aware/constants.py
      */
-    public static WifiAwareNetworkSpecifier jsonToWifiAwareNetworkSpecifier(PeerHandle peerHandle, DiscoverySession wifiAwareDiscoverySession, JSONObject jsonObject) throws JSONException {
+    public static WifiAwareNetworkSpecifier jsonToWifiAwareNetworkSpecifier(PeerHandle peerHandle
+            , DiscoverySession wifiAwareDiscoverySession, JSONObject jsonObject) throws
+            JSONException {
 
 
         WifiAwareNetworkSpecifier.Builder builder = null;
         boolean isAcceptAny = jsonObject.getBoolean(IS_ACCEPT_ANY);
         if (isAcceptAny) {
-            builder = new WifiAwareNetworkSpecifier.Builder((PublishDiscoverySession) wifiAwareDiscoverySession);
+            builder =
+                    new WifiAwareNetworkSpecifier.Builder((PublishDiscoverySession) wifiAwareDiscoverySession);
         } else {
             builder = new WifiAwareNetworkSpecifier.Builder(wifiAwareDiscoverySession, peerHandle);
         }
@@ -263,12 +273,12 @@ public class WifiAwareJsonDeserializer {
             parcel.unmarshall(bytes, 0, bytes.length);
             parcel.setDataPosition(0);
             // Step 3: Use the CREATOR to create WifiAwareNetworkSpecifier from the parcel
-            WifiAwareNetworkSpecifier specifier = WifiAwareNetworkSpecifier.CREATOR.createFromParcel(parcel);
+            WifiAwareNetworkSpecifier specifier =
+                    WifiAwareNetworkSpecifier.CREATOR.createFromParcel(parcel);
             // Release the Parcel object
             parcel.recycle();
             // Step 4: Set the network specifier in the request builder
             requestBuilder.setNetworkSpecifier(specifier);
-            Log.v("NetworkSpecifier: " + specifier);
         }
 
 

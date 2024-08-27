@@ -43,9 +43,8 @@ public class ConnectivityManagerSnippet implements Snippet {
 
     private void checkConnectivityManager() throws ConnectivityManagerSnippetSnippetException {
         if (mConnectivityManager == null) {
-            throw new ConnectivityManagerSnippetSnippetException(
-                    "ConnectivityManager not available."
-            );
+            throw new ConnectivityManagerSnippetSnippetException("ConnectivityManager not "
+                    + "available.");
         }
     }
 
@@ -74,17 +73,18 @@ public class ConnectivityManagerSnippet implements Snippet {
         }
 
         @Override
-        public void onCapabilitiesChanged(@NonNull Network network,
-                                          @NonNull NetworkCapabilities networkCapabilities) {
+        public void onCapabilitiesChanged(
+                @NonNull Network network, @NonNull NetworkCapabilities networkCapabilities) {
 
             SnippetEvent event = new SnippetEvent(mCallBackId, "NetworkCallback");
             event.getData().putString("method", "onCapabilitiesChanged");
             event.getData().putParcelable("network", network);
             event.getData().putParcelable("networkCapabilities", networkCapabilities);
             TransportInfo transportInfo = networkCapabilities.getTransportInfo();
-            if(transportInfo!=null){
-                event.getData().putString("transportInfoClassName", transportInfo.getClass().getName());
-            }else {
+            if (transportInfo != null) {
+                event.getData()
+                        .putString("transportInfoClassName", transportInfo.getClass().getName());
+            } else {
                 event.getData().putString("transportInfoClassName", "");
             }
             EventCache.getInstance().postEvent(event);
@@ -95,13 +95,13 @@ public class ConnectivityManagerSnippet implements Snippet {
     /**
      * An object describing a network that the application is interested in.
      *
-     * @param callBackId Assigned automatically by mobly.
-     * @param request    The request object.
-     * @param requestNetworkTimeoutMs  The timeout in milliseconds.
+     * @param callBackId              Assigned automatically by mobly.
+     * @param request                 The request object.
+     * @param requestNetworkTimeoutMs The timeout in milliseconds.
      */
     @AsyncRpc(description = "Request a network.")
     public void connectivityRequestNetwork(String callBackId, NetworkRequest request,
-                                                    int requestNetworkTimeoutMs) {
+                                           int requestNetworkTimeoutMs) {
         mNetworkCallBack = new NetworkCallback(callBackId);
         mConnectivityManager.requestNetwork(request, mNetworkCallBack, requestNetworkTimeoutMs);
     }
