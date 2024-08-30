@@ -28,8 +28,6 @@ import android.net.wifi.aware.WifiAwareNetworkSpecifier;
 import android.os.Parcel;
 import android.util.Base64;
 
-import com.google.android.mobly.snippet.util.Log;
-
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -204,16 +202,20 @@ public class WifiAwareJsonDeserializer {
      * @param jsonObject corresponding to WifiAwareNetworkSpecifier in
      *                   tests/hostsidetests/multidevices/test/aware/constants.py
      */
-    public static WifiAwareNetworkSpecifier jsonToWifiAwareNetworkSpecifier(PeerHandle peerHandle
-            , DiscoverySession wifiAwareDiscoverySession, JSONObject jsonObject) throws
-            JSONException {
+    public static WifiAwareNetworkSpecifier jsonToWifiAwareNetworkSpecifier(
+            PeerHandle peerHandle,
+            DiscoverySession wifiAwareDiscoverySession,
+            JSONObject jsonObject
+    ) throws JSONException {
 
 
         WifiAwareNetworkSpecifier.Builder builder = null;
         boolean isAcceptAny = jsonObject.getBoolean(IS_ACCEPT_ANY);
         if (isAcceptAny) {
             builder =
-                    new WifiAwareNetworkSpecifier.Builder((PublishDiscoverySession) wifiAwareDiscoverySession);
+                    new WifiAwareNetworkSpecifier.Builder(
+                            (PublishDiscoverySession) wifiAwareDiscoverySession
+                    );
         } else {
             builder = new WifiAwareNetworkSpecifier.Builder(wifiAwareDiscoverySession, peerHandle);
         }

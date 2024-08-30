@@ -35,7 +35,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Parcel;
-import android.os.Parcelable;
 import android.util.Base64;
 
 import androidx.annotation.NonNull;
@@ -493,26 +492,30 @@ public class WifiAwareManagerSnippet implements Snippet {
         }
     }
 
+    /**
+     * Create a network specifier to be used when specifying a Aware network request.
+     *
+     * @param jsonObject a {@link JSONObject} containing the network specifier information.
+     * @return a {@link String} containing the network specifier encoded as a Base64 string.
+     * @throws JSONException if there is an error parsing the JSON object.
+     * @throws WifiAwareManagerSnippetException if there is an error creating the network specifier.
+     */
     @Rpc(description = "Create a network specifier to be used when specifying a Aware network "
             + "request")
     public String wifiAwareCreateNetworkSpecifier(JSONObject jsonObject) throws JSONException,
             WifiAwareManagerSnippetException {
         checkDiscoverySession();
         checkPeerHandler();
-//        SnippetEvent event = new SnippetEvent(callBackId, "CreateNetworkSpecifier");
         WifiAwareNetworkSpecifier specifier =
                 WifiAwareJsonDeserializer.jsonToWifiAwareNetworkSpecifier(mPeerHandle,
                         mDiscoverySession, jsonObject);
         // Step 1: Write the WifiAwareNetworkSpecifier to a Parcel
         Parcel parcel = Parcel.obtain();
         specifier.writeToParcel(parcel, 0);
-
         // Step 2: Convert the Parcel data to a byte array
         byte[] bytes = parcel.marshall();
-
         // Release the Parcel object
         parcel.recycle();
-
         // Step 3: Encode the byte array to a Base64 string
         return Base64.encodeToString(bytes, Base64.DEFAULT);
     }

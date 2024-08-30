@@ -29,6 +29,7 @@ import com.google.android.mobly.snippet.Snippet;
 import com.google.android.mobly.snippet.event.EventCache;
 import com.google.android.mobly.snippet.event.SnippetEvent;
 import com.google.android.mobly.snippet.rpc.AsyncRpc;
+import com.google.android.mobly.snippet.rpc.Rpc;
 
 public class ConnectivityManagerSnippet implements Snippet {
     private final Context mContext;
@@ -104,5 +105,16 @@ public class ConnectivityManagerSnippet implements Snippet {
                                            int requestNetworkTimeoutMs) {
         mNetworkCallBack = new NetworkCallback(callBackId);
         mConnectivityManager.requestNetwork(request, mNetworkCallBack, requestNetworkTimeoutMs);
+    }
+
+    /**
+     * Unregister a network request.
+     */
+    @Rpc(description = "Unregister a network request")
+    public void connectivityUnregisterNetwork() {
+        if (mNetworkCallBack == null) {
+            return;
+        }
+        mConnectivityManager.unregisterNetworkCallback(mNetworkCallBack);
     }
 }
