@@ -30,8 +30,14 @@ import com.google.android.mobly.snippet.event.EventCache;
 import com.google.android.mobly.snippet.event.SnippetEvent;
 import com.google.android.mobly.snippet.rpc.AsyncRpc;
 import com.google.android.mobly.snippet.rpc.Rpc;
+import com.google.android.mobly.snippet.util.Log;
 
 public class ConnectivityManagerSnippet implements Snippet {
+    private static final String EVENT_KEY_CB_NAME = "callbackName";
+    private static final String EVENT_KEY_NETWORK = "network";
+    private static final String EVENT_KEY_NETWORK_CAP = "networkCapabilities";
+    private static final String EVENT_KEY_TRANSPORT_INFO_CLASS = "transportInfoClassName";
+
     private final Context mContext;
     private final ConnectivityManager mConnectivityManager;
     private NetworkCallback mNetworkCallBack;
@@ -42,22 +48,15 @@ public class ConnectivityManagerSnippet implements Snippet {
         }
     }
 
-    private void checkConnectivityManager() throws ConnectivityManagerSnippetSnippetException {
-        if (mConnectivityManager == null) {
-            throw new ConnectivityManagerSnippetSnippetException("ConnectivityManager not "
-                    + "available.");
-        }
-    }
-
     public ConnectivityManagerSnippet() throws ConnectivityManagerSnippetSnippetException {
         mContext = ApplicationProvider.getApplicationContext();
         mConnectivityManager = mContext.getSystemService(ConnectivityManager.class);
-        checkConnectivityManager();
+        if (mConnectivityManager == null) {
+            throw new ConnectivityManagerSnippetSnippetException("ConnectivityManager not "
+                + "available.");
+        }
     }
 
-    /**
-     * Customized network monitoring method
-     */
     public class NetworkCallback extends ConnectivityManager.NetworkCallback {
 
         String mCallBackId;
@@ -69,32 +68,29 @@ public class ConnectivityManagerSnippet implements Snippet {
         @Override
         public void onUnavailable() {
             SnippetEvent event = new SnippetEvent(mCallBackId, "NetworkCallback");
-            event.getData().putString("method", "onUnavailable");
+            event.getData().putString(EVENT_KEY_CB_NAME, "onUnavailable");
             EventCache.getInstance().postEvent(event);
         }
 
         @Override
         public void onCapabilitiesChanged(
                 @NonNull Network network, @NonNull NetworkCapabilities networkCapabilities) {
-
             SnippetEvent event = new SnippetEvent(mCallBackId, "NetworkCallback");
-            event.getData().putString("method", "onCapabilitiesChanged");
-            event.getData().putParcelable("network", network);
-            event.getData().putParcelable("networkCapabilities", networkCapabilities);
+            event.getData().putString(EVENT_KEY_CB_NAME, "onCapabilitiesChanged");
+            event.getData().putParcelable(EVENT_KEY_NETWORK, network);
+            event.getData().putParcelable(EVENT_KEY_NETWORK_CAP, networkCapabilities);
             TransportInfo transportInfo = networkCapabilities.getTransportInfo();
+            String transportInfoClassName = "";
             if (transportInfo != null) {
-                event.getData()
-                        .putString("transportInfoClassName", transportInfo.getClass().getName());
-            } else {
-                event.getData().putString("transportInfoClassName", "");
+                transportInfoClassName = transportInfo.getClass().getName();
             }
+            event.getData().putString(EVENT_KEY_TRANSPORT_INFO_CLASS, transportInfoClassName);
             EventCache.getInstance().postEvent(event);
-
         }
     }
 
     /**
-     * An object describing a network that the application is interested in.
+     * Requests a network with given network request.
      *
      * @param callBackId              Assigned automatically by mobly.
      * @param request                 The request object.
@@ -103,12 +99,13 @@ public class ConnectivityManagerSnippet implements Snippet {
     @AsyncRpc(description = "Request a network.")
     public void connectivityRequestNetwork(String callBackId, NetworkRequest request,
                                            int requestNetworkTimeoutMs) {
+        Log.v("Requesting network with request: " + request.toString());
         mNetworkCallBack = new NetworkCallback(callBackId);
         mConnectivityManager.requestNetwork(request, mNetworkCallBack, requestNetworkTimeoutMs);
     }
 
     /**
-     * Unregister a network request.
+     * Unregisters the registered network callback and possibly releases requested networks.
      */
     @Rpc(description = "Unregister a network request")
     public void connectivityUnregisterNetwork() {

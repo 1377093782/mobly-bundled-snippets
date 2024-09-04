@@ -41,7 +41,6 @@ android_test {
         "ConnectivityManagerSnippet.java",
         "PermissionUtils.java",
         "WifiAwareJsonDeserializer.java",
-        "WifiAwareJsonSerializer.java",
         "WifiAwareManagerSnippet.java",
         "WifiAwareSnippetConverter.java",
     ],

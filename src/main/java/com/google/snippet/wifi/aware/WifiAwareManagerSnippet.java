@@ -47,9 +47,7 @@ import com.google.android.mobly.snippet.rpc.AsyncRpc;
 import com.google.android.mobly.snippet.rpc.Rpc;
 import com.google.android.mobly.snippet.util.Log;
 
-
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -263,13 +261,13 @@ public class WifiAwareManagerSnippet implements Snippet {
             sendEvent(mCallBackId, "onSessionTerminated");
         }
 
-
         @Override
         public void onServiceDiscovered(PeerHandle peerHandle, byte[] serviceSpecificInfo,
                                         List<byte[]> matchFilter) {
             mPeerHandle = peerHandle;
             SnippetEvent event = new SnippetEvent(mCallBackId, "onServiceDiscovered");
             event.getData().putByteArray("serviceSpecificInfo", serviceSpecificInfo);
+            event.getData().putInt("peerId", mPeerHandle.hashCode());
             putMatchFilterData(matchFilter, event);
             EventCache.getInstance().postEvent(event);
         }
@@ -281,6 +279,7 @@ public class WifiAwareManagerSnippet implements Snippet {
             SnippetEvent event = new SnippetEvent(mCallBackId, "onServiceDiscovered");
             event.getData().putByteArray("serviceSpecificInfo", info.getServiceSpecificInfo());
             event.getData().putString("pairedAlias", info.getPairedAlias());
+            event.getData().putInt("peerId", mPeerHandle.hashCode());
             putMatchFilterData(matchFilter, event);
             EventCache.getInstance().postEvent(event);
         }
@@ -293,21 +292,24 @@ public class WifiAwareManagerSnippet implements Snippet {
             SnippetEvent event = new SnippetEvent(mCallBackId, "onServiceDiscoveredWithinRange");
             event.getData().putByteArray("serviceSpecificInfo", serviceSpecificInfo);
             event.getData().putInt("distanceMm", distanceMm);
+            event.getData().putInt("peerId", mPeerHandle.hashCode());
             putMatchFilterData(matchFilter, event);
             EventCache.getInstance().postEvent(event);
         }
 
         @Override
         public void onMessageSendSucceeded(int messageId) {
-            SnippetEvent event = new SnippetEvent(mCallBackId, "onMessageSendSucceeded");
-            event.getData().putInt("lastMessageId", messageId);
+            SnippetEvent event = new SnippetEvent(mCallBackId, "messageSendResult");
+            event.getData().putString("callbackName", "onMessageSendSucceeded");
+            event.getData().putInt("messageId", messageId);
             EventCache.getInstance().postEvent(event);
         }
 
         @Override
         public void onMessageSendFailed(int messageId) {
-            SnippetEvent event = new SnippetEvent(mCallBackId, "onMessageSendFailed");
-            event.getData().putInt("lastMessageId", messageId);
+            SnippetEvent event = new SnippetEvent(mCallBackId, "messageSendResult");
+            event.getData().putString("callbackName", "onMessageSendFailed");
+            event.getData().putInt("messageId", messageId);
             EventCache.getInstance().postEvent(event);
         }
 
@@ -316,67 +318,70 @@ public class WifiAwareManagerSnippet implements Snippet {
             mPeerHandle = peerHandle;
             SnippetEvent event = new SnippetEvent(mCallBackId, "onMessageReceived");
             event.getData().putByteArray("receivedMessage", message);
+            event.getData().putInt("peerId", peerHandle.hashCode());
             EventCache.getInstance().postEvent(event);
         }
 
         @Override
         public void onPairingSetupRequestReceived(PeerHandle peerHandle, int requestId) {
-            mPeerHandle = peerHandle;
             SnippetEvent event = new SnippetEvent(mCallBackId, "onPairingSetupRequestReceived");
             event.getData().putInt("pairingRequestId", requestId);
+            event.getData().putInt("peerId", peerHandle.hashCode());
             EventCache.getInstance().postEvent(event);
         }
 
         @Override
         public void onPairingSetupSucceeded(PeerHandle peerHandle, String alias) {
-            mPeerHandle = peerHandle;
             SnippetEvent event = new SnippetEvent(mCallBackId, "onPairingSetupSucceeded");
             event.getData().putString("pairedAlias", alias);
+            event.getData().putInt("peerId", peerHandle.hashCode());
             EventCache.getInstance().postEvent(event);
         }
 
         @Override
         public void onPairingSetupFailed(PeerHandle peerHandle) {
-            mPeerHandle = peerHandle;
-            sendEvent(mCallBackId, "onPairingSetupFailed");
-
+            SnippetEvent event = new SnippetEvent(mCallBackId, "onPairingSetupFailed");
+            event.getData().putInt("peerId", peerHandle.hashCode());
+            EventCache.getInstance().postEvent(event);
         }
 
         @Override
         public void onPairingVerificationSucceed(
                 @NonNull PeerHandle peerHandle, @NonNull String alias) {
             super.onPairingVerificationSucceed(mPeerHandle, alias);
-            mPeerHandle = peerHandle;
             SnippetEvent event = new SnippetEvent(mCallBackId, "onPairingVerificationSucceed");
             event.getData().putString("pairedAlias", alias);
+            event.getData().putInt("peerId", peerHandle.hashCode());
             EventCache.getInstance().postEvent(event);
         }
 
         @Override
         public void onPairingVerificationFailed(PeerHandle peerHandle) {
-            mPeerHandle = peerHandle;
-            sendEvent(mCallBackId, "onPairingVerificationFailed");
+            SnippetEvent event = new SnippetEvent(mCallBackId, "onPairingVerificationFailed");
+            event.getData().putInt("peerId", peerHandle.hashCode());
+            EventCache.getInstance().postEvent(event);
         }
 
         @Override
         public void onBootstrappingSucceeded(PeerHandle peerHandle, int method) {
-            mPeerHandle = peerHandle;
             SnippetEvent event = new SnippetEvent(mCallBackId, "onBootstrappingSucceeded");
             event.getData().putInt("bootstrappingMethod", method);
+            event.getData().putInt("peerId", peerHandle.hashCode());
             EventCache.getInstance().postEvent(event);
         }
 
         @Override
         public void onBootstrappingFailed(PeerHandle peerHandle) {
-            mPeerHandle = peerHandle;
-            sendEvent(mCallBackId, "onBootstrappingFailed");
+            SnippetEvent event = new SnippetEvent(mCallBackId, "onBootstrappingFailed");
+            event.getData().putInt("peerId", peerHandle.hashCode());
+            EventCache.getInstance().postEvent(event);
         }
     }
 
     private void checkWifiAwareSession() throws WifiAwareManagerSnippetException {
         if (mWifiAwareSession == null) {
             throw new WifiAwareManagerSnippetException(
-                    "Wi-Fi Aware session is not attached. " + "Please call wifiAwareAttach first.");
+                    "Wi-Fi Aware session is not attached. Please call wifiAwareAttach first.");
         }
     }
 
@@ -396,7 +401,7 @@ public class WifiAwareManagerSnippet implements Snippet {
     public void wifiAwareSubscribe(String callbackId, SubscribeConfig subscribeConfig) throws
             JSONException, WifiAwareManagerSnippetException {
         checkWifiAwareSession();
-        Log.v("subscribeConfig: " + subscribeConfig.toString());
+        Log.v("Creating a new Aware subscribe session with config: " + subscribeConfig.toString());
         WifiAwareDiscoverySessionCallback myDiscoverySessionCallback =
                 new WifiAwareDiscoverySessionCallback(callbackId);
         mWifiAwareSession.subscribe(subscribeConfig, myDiscoverySessionCallback, mHandler);
@@ -415,7 +420,7 @@ public class WifiAwareManagerSnippet implements Snippet {
     public void wifiAwarePublish(String callbackId, PublishConfig publishConfig) throws
             JSONException, WifiAwareManagerSnippetException {
         checkWifiAwareSession();
-        Log.v("publishConfig: " + publishConfig.toString());
+        Log.v("Creating a new Aware publish session with config: " + publishConfig.toString());
         WifiAwareDiscoverySessionCallback myDiscoverySessionCallback =
                 new WifiAwareDiscoverySessionCallback(callbackId);
         mWifiAwareSession.publish(publishConfig, myDiscoverySessionCallback, mHandler);
@@ -493,30 +498,29 @@ public class WifiAwareManagerSnippet implements Snippet {
     }
 
     /**
-     * Create a network specifier to be used when specifying a Aware network request.
+     * Creates a Wi-Fi Aware network specifier for requesting network through connectivityManager.
      *
-     * @param jsonObject a {@link JSONObject} containing the network specifier information.
      * @return a {@link String} containing the network specifier encoded as a Base64 string.
      * @throws JSONException if there is an error parsing the JSON object.
      * @throws WifiAwareManagerSnippetException if there is an error creating the network specifier.
      */
     @Rpc(description = "Create a network specifier to be used when specifying a Aware network "
             + "request")
-    public String wifiAwareCreateNetworkSpecifier(JSONObject jsonObject) throws JSONException,
+    public String wifiAwareCreateNetworkSpecifier() throws JSONException,
             WifiAwareManagerSnippetException {
         checkDiscoverySession();
         checkPeerHandler();
-        WifiAwareNetworkSpecifier specifier =
-                WifiAwareJsonDeserializer.jsonToWifiAwareNetworkSpecifier(mPeerHandle,
-                        mDiscoverySession, jsonObject);
-        // Step 1: Write the WifiAwareNetworkSpecifier to a Parcel
+        WifiAwareNetworkSpecifier.Builder builder = new WifiAwareNetworkSpecifier.Builder(
+                mDiscoverySession, mPeerHandle);
+        WifiAwareNetworkSpecifier specifier = builder.build();
+        // Write the WifiAwareNetworkSpecifier to a Parcel
         Parcel parcel = Parcel.obtain();
         specifier.writeToParcel(parcel, 0);
-        // Step 2: Convert the Parcel data to a byte array
+        // Convert the Parcel data to a byte array
         byte[] bytes = parcel.marshall();
         // Release the Parcel object
         parcel.recycle();
-        // Step 3: Encode the byte array to a Base64 string
+        // Encode the byte array to a Base64 string
         return Base64.encodeToString(bytes, Base64.DEFAULT);
     }
 

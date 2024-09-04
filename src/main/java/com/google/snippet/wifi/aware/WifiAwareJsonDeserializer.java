@@ -17,12 +17,10 @@
 
 package com.google.snippet.wifi.aware;
 
+import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.net.wifi.aware.AwarePairingConfig;
-import android.net.wifi.aware.DiscoverySession;
-import android.net.wifi.aware.PeerHandle;
 import android.net.wifi.aware.PublishConfig;
-import android.net.wifi.aware.PublishDiscoverySession;
 import android.net.wifi.aware.SubscribeConfig;
 import android.net.wifi.aware.WifiAwareNetworkSpecifier;
 import android.os.Parcel;
@@ -197,99 +195,45 @@ public class WifiAwareJsonDeserializer {
     }
 
     /**
-     * Converts Python dict to {@link WifiAwareNetworkSpecifier}.
-     *
-     * @param jsonObject corresponding to WifiAwareNetworkSpecifier in
-     *                   tests/hostsidetests/multidevices/test/aware/constants.py
-     */
-    public static WifiAwareNetworkSpecifier jsonToWifiAwareNetworkSpecifier(
-            PeerHandle peerHandle,
-            DiscoverySession wifiAwareDiscoverySession,
-            JSONObject jsonObject
-    ) throws JSONException {
-
-
-        WifiAwareNetworkSpecifier.Builder builder = null;
-        boolean isAcceptAny = jsonObject.getBoolean(IS_ACCEPT_ANY);
-        if (isAcceptAny) {
-            builder =
-                    new WifiAwareNetworkSpecifier.Builder(
-                            (PublishDiscoverySession) wifiAwareDiscoverySession
-                    );
-        } else {
-            builder = new WifiAwareNetworkSpecifier.Builder(wifiAwareDiscoverySession, peerHandle);
-        }
-        if (jsonObject.has(PMK)) {
-            byte[] pmk = jsonObject.getString(PMK).getBytes(StandardCharsets.UTF_8);
-            builder.setPmk(pmk);
-        }
-        if (jsonObject.has(PSK_PASSPHRASE)) {
-            String passphrase = jsonObject.getString(PSK_PASSPHRASE);
-            builder.setPskPassphrase(passphrase);
-        }
-
-        if (jsonObject.has(PORT)) {
-            builder.setPort(jsonObject.getInt(PORT));
-        }
-        if (jsonObject.has(TRANSPORT_PROTOCOL)) {
-            builder.setPort(jsonObject.getInt(TRANSPORT_PROTOCOL));
-        }
-        if (jsonObject.has(CHANNEL_IN_MHZ)) {
-            int channelInMHZ = jsonObject.getInt(CHANNEL_IN_MHZ);
-            boolean require = jsonObject.getBoolean(CHANNEL_REQUIRE);
-            builder.setChannelFrequencyMhz(channelInMHZ, require);
-            if (require) {
-                WifiAwareNetworkSpecifier build = builder.build();
-                if (build.getChannelFrequencyMhz() != channelInMHZ || !build.isChannelRequired()) {
-                    throw new RuntimeException("Channel configure for data-path is not match。");
-                }
-            }
-        }
-
-
-        return builder.build();
-    }
-
-
-    /**
-     * Converts Python dict to {@link NetworkRequest}.
+     * Converts request from JSON object to {@link NetworkRequest}.
      *
      * @param jsonObject corresponding to WifiAwareNetworkSpecifier in
      *                   tests/hostsidetests/multidevices/test/aware/constants.py
      */
     public static NetworkRequest jsonToNetworkRequest(JSONObject jsonObject) throws JSONException {
-
-
         NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
+        int transportType;
         if (jsonObject.has(TRANSPORT_TYPE)) {
-            int transportType = jsonObject.getInt(TRANSPORT_TYPE);
+            transportType = jsonObject.getInt(TRANSPORT_TYPE);
+        } else {
+            // Returns null for request of unknown type.
+            return null;
+        }
+        if (transportType == NetworkCapabilities.TRANSPORT_WIFI_AWARE) {
             requestBuilder.addTransportType(transportType);
+            if (jsonObject.has(NETWORK_SPECIFIER)) {
+                String specifierParcelableStr = jsonObject.getString(NETWORK_SPECIFIER);
+                // Convert the Base64 string to a byte array
+                byte[] bytes = Base64.decode(specifierParcelableStr, Base64.DEFAULT);
+                // Use Parcel to read the byte array
+                Parcel parcel = Parcel.obtain();
+                parcel.unmarshall(bytes, 0, bytes.length);
+                parcel.setDataPosition(0);
+                // Use the CREATOR to create WifiAwareNetworkSpecifier from the parcel
+                WifiAwareNetworkSpecifier specifier =
+                        WifiAwareNetworkSpecifier.CREATOR.createFromParcel(parcel);
+                // Release the Parcel object
+                parcel.recycle();
+                // Set the network specifier in the request builder
+                requestBuilder.setNetworkSpecifier(specifier);
+            }
+            if (jsonObject.has(CAPABILITY)) {
+                int capability = jsonObject.getInt(CAPABILITY);
+                requestBuilder.addCapability(capability);
+            }
+            return requestBuilder.build();
         }
-
-        if (jsonObject.has(NETWORK_SPECIFIER)) {
-            String specifierParcelableStr = jsonObject.getString(NETWORK_SPECIFIER);
-            // Step 1: Convert the Base64 string to a byte array
-            byte[] bytes = Base64.decode(specifierParcelableStr, Base64.DEFAULT);
-            // Step 2: Use Parcel to read the byte array
-            Parcel parcel = Parcel.obtain();
-            parcel.unmarshall(bytes, 0, bytes.length);
-            parcel.setDataPosition(0);
-            // Step 3: Use the CREATOR to create WifiAwareNetworkSpecifier from the parcel
-            WifiAwareNetworkSpecifier specifier =
-                    WifiAwareNetworkSpecifier.CREATOR.createFromParcel(parcel);
-            // Release the Parcel object
-            parcel.recycle();
-            // Step 4: Set the network specifier in the request builder
-            requestBuilder.setNetworkSpecifier(specifier);
-        }
-
-
-        if (jsonObject.has(CAPABILITY)) {
-            int capability = jsonObject.getInt(CAPABILITY);
-            requestBuilder.addCapability(capability);
-        }
-
-        return requestBuilder.build();
+        return null;
     }
 
 
