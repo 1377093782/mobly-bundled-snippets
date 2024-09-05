@@ -45,9 +45,11 @@ import com.google.android.mobly.snippet.event.EventCache;
 import com.google.android.mobly.snippet.event.SnippetEvent;
 import com.google.android.mobly.snippet.rpc.AsyncRpc;
 import com.google.android.mobly.snippet.rpc.Rpc;
+import com.google.android.mobly.snippet.rpc.RpcOptional;
 import com.google.android.mobly.snippet.util.Log;
 
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -381,7 +383,7 @@ public class WifiAwareManagerSnippet implements Snippet {
     private void checkWifiAwareSession() throws WifiAwareManagerSnippetException {
         if (mWifiAwareSession == null) {
             throw new WifiAwareManagerSnippetException(
-                    "Wi-Fi Aware session is not attached. Please call wifiAwareAttach first.");
+                    "Wi-Fi Aware session is not attached. " + "Please call wifiAwareAttach first.");
         }
     }
 
@@ -500,19 +502,20 @@ public class WifiAwareManagerSnippet implements Snippet {
     /**
      * Creates a Wi-Fi Aware network specifier for requesting network through connectivityManager.
      *
+     * @param jsonObject a {@link JSONObject} containing the network specifier parameters.
      * @return a {@link String} containing the network specifier encoded as a Base64 string.
-     * @throws JSONException if there is an error parsing the JSON object.
+     * @throws JSONException                    if there is an error parsing the JSON object.
      * @throws WifiAwareManagerSnippetException if there is an error creating the network specifier.
      */
     @Rpc(description = "Create a network specifier to be used when specifying a Aware network "
             + "request")
-    public String wifiAwareCreateNetworkSpecifier() throws JSONException,
-            WifiAwareManagerSnippetException {
+    public String wifiAwareCreateNetworkSpecifier(@RpcOptional JSONObject jsonObject) throws
+            JSONException, WifiAwareManagerSnippetException {
         checkDiscoverySession();
         checkPeerHandler();
-        WifiAwareNetworkSpecifier.Builder builder = new WifiAwareNetworkSpecifier.Builder(
-                mDiscoverySession, mPeerHandle);
-        WifiAwareNetworkSpecifier specifier = builder.build();
+        WifiAwareNetworkSpecifier.Builder builder =
+                new WifiAwareNetworkSpecifier.Builder(mDiscoverySession, mPeerHandle);
+        WifiAwareNetworkSpecifier specifier = WifiAwareJsonDeserializer.jsonToNetworkSpecifier(jsonObject, builder);
         // Write the WifiAwareNetworkSpecifier to a Parcel
         Parcel parcel = Parcel.obtain();
         specifier.writeToParcel(parcel, 0);
