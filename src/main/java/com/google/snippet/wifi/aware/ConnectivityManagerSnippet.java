@@ -128,7 +128,7 @@ public class ConnectivityManagerSnippet implements Snippet {
      */
     @Rpc(description = "Unregister a network request")
     public void connectivityUnregisterNetwork() {
-        if (mNetworkCallBack == null) {
+        if (mNetworkCallBack == null || mConnectivityManager == null) {
             return;
         }
         mConnectivityManager.unregisterNetworkCallback(mNetworkCallBack);
@@ -136,6 +136,7 @@ public class ConnectivityManagerSnippet implements Snippet {
 
     /**
      * Returns the local port of a server socket.
+     *
      * @return The local port of a server socket.
      */
     @Rpc(description = "Get the local port of a server socket.")
@@ -148,8 +149,8 @@ public class ConnectivityManagerSnippet implements Snippet {
             // A call to accept() for this ServerSocket will block for only this amount of time.
             mServerSocket.setSoTimeout(mAcceptTimeout);
         } catch (IOException e) {
-            throw new ConnectivityManagerSnippetSnippetException(
-                    "Failed to create a server socket");
+            throw new ConnectivityManagerSnippetSnippetException("Failed to create a server "
+                    + "socket");
         }
         port = mServerSocket.getLocalPort();
         return port;
@@ -281,8 +282,8 @@ public class ConnectivityManagerSnippet implements Snippet {
      */
     private void checkNetworkCapabilities() throws ConnectivityManagerSnippetSnippetException {
         if (mNetworkCapabilities == null) {
-            throw new ConnectivityManagerSnippetSnippetException("Network capabilities is not "
-                    + "created.");
+            throw new ConnectivityManagerSnippetSnippetException(
+                    "Network capabilities is not " + "created.");
         }
     }
 

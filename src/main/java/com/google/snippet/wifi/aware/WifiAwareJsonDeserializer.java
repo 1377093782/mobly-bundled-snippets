@@ -246,10 +246,13 @@ public class WifiAwareJsonDeserializer {
     public static WifiAwareNetworkSpecifier jsonToNetworkSpecifier(JSONObject jsonObject,
                                                                    WifiAwareNetworkSpecifier.Builder builder) throws
             JSONException {
-        if (jsonObject.has(PSK_PASSPHRASE)) {
-            String pskPassphrase = jsonObject.getString(PSK_PASSPHRASE);
-            builder.setPskPassphrase(pskPassphrase);
+        if (jsonObject != null) {
+            if (jsonObject.has(PSK_PASSPHRASE)) {
+                String pskPassphrase = jsonObject.getString(PSK_PASSPHRASE);
+                builder.setPskPassphrase(pskPassphrase);
+            }
         }
+
         return builder.build();
 
     }
