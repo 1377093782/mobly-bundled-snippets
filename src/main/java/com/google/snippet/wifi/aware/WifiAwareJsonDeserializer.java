@@ -251,6 +251,12 @@ public class WifiAwareJsonDeserializer {
                 String pskPassphrase = jsonObject.getString(PSK_PASSPHRASE);
                 builder.setPskPassphrase(pskPassphrase);
             }
+            if (jsonObject.has(PORT)) {
+                builder.setPort(jsonObject.getInt(PORT));
+            }
+            if (jsonObject.has(TRANSPORT_PROTOCOL)) {
+                builder.setTransportProtocol(jsonObject.getInt(TRANSPORT_PROTOCOL));
+            }
         }
 
         return builder.build();
