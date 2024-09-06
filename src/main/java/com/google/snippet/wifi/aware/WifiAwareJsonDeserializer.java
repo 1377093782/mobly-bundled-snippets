@@ -64,7 +64,7 @@ public class WifiAwareJsonDeserializer {
     //NetworkRequest specific
     private static final String TRANSPORT_TYPE = "transport_type";
     private static final String CAPABILITY = "capability";
-    private static final String NETWORK_SPECIFIER = "network_specifier";
+    private static final String NETWORK_SPECIFIER_PARCEL = "network_specifier_parcel";
 
 
     private WifiAwareJsonDeserializer() {
@@ -211,8 +211,8 @@ public class WifiAwareJsonDeserializer {
         }
         if (transportType == NetworkCapabilities.TRANSPORT_WIFI_AWARE) {
             requestBuilder.addTransportType(transportType);
-            if (jsonObject.has(NETWORK_SPECIFIER)) {
-                String specifierParcelableStr = jsonObject.getString(NETWORK_SPECIFIER);
+            if (jsonObject.has(NETWORK_SPECIFIER_PARCEL)) {
+                String specifierParcelableStr = jsonObject.getString(NETWORK_SPECIFIER_PARCEL);
                 // Convert the Base64 string to a byte array
                 byte[] bytes = Base64.decode(specifierParcelableStr, Base64.DEFAULT);
                 // Use Parcel to read the byte array
