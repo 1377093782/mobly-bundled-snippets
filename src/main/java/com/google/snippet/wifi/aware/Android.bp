@@ -36,7 +36,7 @@ android_test {
 
 android_test {
     name: "wifi_aware_snippet_new",
-    sdk_version: "34",
+    sdk_version: "current",
     srcs: [
         "ConnectivityManagerSnippet.java",
         "PermissionUtils.java",
