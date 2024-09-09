@@ -348,8 +348,8 @@ public class WifiAwareManagerSnippet implements Snippet {
         }
 
         @Override
-        public void onPairingVerificationSucceed(
-                @NonNull PeerHandle peerHandle, @NonNull String alias) {
+        public void onPairingVerificationSucceed(@NonNull PeerHandle peerHandle,
+                                                 @NonNull String alias) {
             super.onPairingVerificationSucceed(mPeerHandle, alias);
             SnippetEvent event = new SnippetEvent(mCallBackId, "onPairingVerificationSucceed");
             event.getData().putString("pairedAlias", alias);
@@ -400,8 +400,8 @@ public class WifiAwareManagerSnippet implements Snippet {
      */
     @AsyncRpc(
             description = "Create a Wi-Fi Aware subscribe discovery session and handle callbacks.")
-    public void wifiAwareSubscribe(String callbackId, SubscribeConfig subscribeConfig) throws
-            JSONException, WifiAwareManagerSnippetException {
+    public void wifiAwareSubscribe(String callbackId, SubscribeConfig subscribeConfig)
+            throws JSONException, WifiAwareManagerSnippetException {
         checkWifiAwareSession();
         Log.v("Creating a new Aware subscribe session with config: " + subscribeConfig.toString());
         WifiAwareDiscoverySessionCallback myDiscoverySessionCallback =
@@ -419,8 +419,8 @@ public class WifiAwareManagerSnippet implements Snippet {
      * @param publishConfig Defines the publish configuration via WifiAwareJsonDeserializer.
      */
     @AsyncRpc(description = "Create a Wi-Fi Aware publish discovery session and handle callbacks.")
-    public void wifiAwarePublish(String callbackId, PublishConfig publishConfig) throws
-            JSONException, WifiAwareManagerSnippetException {
+    public void wifiAwarePublish(String callbackId, PublishConfig publishConfig)
+            throws JSONException, WifiAwareManagerSnippetException {
         checkWifiAwareSession();
         Log.v("Creating a new Aware publish session with config: " + publishConfig.toString());
         WifiAwareDiscoverySessionCallback myDiscoverySessionCallback =
@@ -461,8 +461,8 @@ public class WifiAwareManagerSnippet implements Snippet {
      * @see java.nio.charset.StandardCharsets#UTF_8
      */
     @Rpc(description = "Send a message to a peer using Wi-Fi Aware.")
-    public void wifiAwareSendMessage(int messageId, String message) throws
-            WifiAwareManagerSnippetException {
+    public void wifiAwareSendMessage(int messageId, String message)
+            throws WifiAwareManagerSnippetException {
         // 4. send message & wait for send status
         checkDiscoverySession();
         mDiscoverySession.sendMessage(mPeerHandle, messageId,
@@ -509,13 +509,14 @@ public class WifiAwareManagerSnippet implements Snippet {
      */
     @Rpc(description = "Create a network specifier to be used when specifying a Aware network "
             + "request")
-    public String wifiAwareCreateNetworkSpecifier(@RpcOptional JSONObject jsonObject) throws
-            JSONException, WifiAwareManagerSnippetException {
+    public String wifiAwareCreateNetworkSpecifier(@RpcOptional JSONObject jsonObject)
+            throws JSONException, WifiAwareManagerSnippetException {
         checkDiscoverySession();
         checkPeerHandler();
         WifiAwareNetworkSpecifier.Builder builder =
                 new WifiAwareNetworkSpecifier.Builder(mDiscoverySession, mPeerHandle);
-        WifiAwareNetworkSpecifier specifier = WifiAwareJsonDeserializer.jsonToNetworkSpecifier(jsonObject, builder);
+        WifiAwareNetworkSpecifier specifier =
+                WifiAwareJsonDeserializer.jsonToNetworkSpecifier(jsonObject, builder);
         // Write the WifiAwareNetworkSpecifier to a Parcel
         Parcel parcel = Parcel.obtain();
         specifier.writeToParcel(parcel, 0);

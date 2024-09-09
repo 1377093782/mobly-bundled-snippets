@@ -76,8 +76,8 @@ public class WifiAwareJsonDeserializer {
      * @param jsonObject corresponding to SubscribeConfig in
      *                   tests/hostsidetests/multidevices/test/aware/constants.py
      */
-    public static SubscribeConfig jsonToSubscribeConfig(JSONObject jsonObject) throws
-            JSONException {
+    public static SubscribeConfig jsonToSubscribeConfig(JSONObject jsonObject)
+            throws JSONException {
         SubscribeConfig.Builder builder = new SubscribeConfig.Builder();
         if (jsonObject.has(SERVICE_NAME)) {
             String serviceName = jsonObject.getString(SERVICE_NAME);
@@ -125,8 +125,8 @@ public class WifiAwareJsonDeserializer {
      * @param jsonObject corresponding to SubscribeConfig in
      *                   tests/hostsidetests/multidevices/test/aware/constants.py
      */
-    private static AwarePairingConfig jsonToAwarePairingConfig(JSONObject jsonObject) throws
-            JSONException {
+    private static AwarePairingConfig jsonToAwarePairingConfig(JSONObject jsonObject)
+            throws JSONException {
         AwarePairingConfig.Builder builder = new AwarePairingConfig.Builder();
         if (jsonObject.has(PAIRING_CACHE_ENABLED)) {
             boolean pairingCacheEnabled = jsonObject.getBoolean(PAIRING_CACHE_ENABLED);
@@ -243,9 +243,9 @@ public class WifiAwareJsonDeserializer {
      * @param builder    builder to build the WifiAwareNetworkSpecifier
      * @return WifiAwareNetworkSpecifier object
      */
-    public static WifiAwareNetworkSpecifier jsonToNetworkSpecifier(JSONObject jsonObject,
-                                                                   WifiAwareNetworkSpecifier.Builder builder) throws
-            JSONException {
+    public static WifiAwareNetworkSpecifier jsonToNetworkSpecifier(
+            JSONObject jsonObject, WifiAwareNetworkSpecifier.Builder builder
+    ) throws JSONException {
         if (jsonObject != null) {
             if (jsonObject.has(PSK_PASSPHRASE)) {
                 String pskPassphrase = jsonObject.getString(PSK_PASSPHRASE);
