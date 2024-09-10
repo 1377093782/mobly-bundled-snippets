@@ -527,6 +527,11 @@ public class WifiAwareManagerSnippet implements Snippet {
         // Encode the byte array to a Base64 string
         return Base64.encodeToString(bytes, Base64.DEFAULT);
     }
+    @Override
+    public void shutdown() throws Exception {
+        wifiAwareCloseDiscoverSession();
+        wifiAwareCloseWifiAwareSession();
+    }
 
 }
 

@@ -48,6 +48,8 @@ public class ConnectivityManagerSnippet implements Snippet {
     private static final String EVENT_KEY_NETWORK_CAP = "networkCapabilities";
     private static final String EVENT_KEY_TRANSPORT_INFO_CLASS = "transportInfoClassName";
 
+    private static final int TRANSPORT_PROTOCOL_TCP = 6;
+
     private final Context mContext;
     private final ConnectivityManager mConnectivityManager;
     private NetworkCallback mNetworkCallBack;
@@ -57,6 +59,7 @@ public class ConnectivityManagerSnippet implements Snippet {
     private NetworkCapabilities mNetworkCapabilities;
     private Network mNetwork;
     private OutputStream mOutputStream;
+    private Thread mSocketThread;
 
 
     class ConnectivityManagerSnippetSnippetException extends Exception {
@@ -91,7 +94,8 @@ public class ConnectivityManagerSnippet implements Snippet {
 
         @Override
         public void onCapabilitiesChanged(
-                @NonNull Network network, @NonNull NetworkCapabilities networkCapabilities) {
+                @NonNull Network network, @NonNull NetworkCapabilities networkCapabilities
+        ) {
             SnippetEvent event = new SnippetEvent(mCallBackId, "NetworkCallback");
             event.getData().putString(EVENT_KEY_CB_NAME, "onCapabilitiesChanged");
             event.getData().putParcelable(EVENT_KEY_NETWORK, network);
@@ -117,8 +121,9 @@ public class ConnectivityManagerSnippet implements Snippet {
      * @param requestNetworkTimeoutMs The timeout in milliseconds.
      */
     @AsyncRpc(description = "Request a network.")
-    public void connectivityRequestNetwork(String callBackId, NetworkRequest request,
-                                           int requestNetworkTimeoutMs) {
+    public void connectivityRequestNetwork(
+            String callBackId, NetworkRequest request, int requestNetworkTimeoutMs
+    ) {
         Log.v("Requesting network with request: " + request.toString());
         mNetworkCallBack = new NetworkCallback(callBackId);
         mConnectivityManager.requestNetwork(request, mNetworkCallBack, requestNetworkTimeoutMs);
@@ -163,7 +168,7 @@ public class ConnectivityManagerSnippet implements Snippet {
     @Rpc(description = "Start a server socket to accept incoming connections.")
     public void connectivityAccept() throws ConnectivityManagerSnippetSnippetException {
         checkServerSocket();
-        new Thread(() -> {
+        mSocketThread = new Thread(() -> {
             try {
                 //This will block the execution of the program. Usually we will put it into a child
                 // thread to run
@@ -172,7 +177,33 @@ public class ConnectivityManagerSnippet implements Snippet {
 
                 throw new RuntimeException("Socket accept error", e);
             }
-        }).start();
+        });
+        mSocketThread.start();
+    }
+
+    /**
+     * Check if the server socket thread is alive.
+     *
+     * @return True if the server socket thread is alive.
+     */
+    @Rpc(description = "Check if the server socket thread is alive.")
+    public boolean connectivityIsSocketThreadAlive() {
+        return mSocketThread != null && mSocketThread.isAlive();
+    }
+
+    /**
+     * Stops the server socket thread if it's running.
+     */
+    @Rpc(description = "Stop the server socket thread if it's running.")
+    public void connectivityStopAcceptThread() {
+        if (connectivityIsSocketThreadAlive()) {
+            try {
+                mSocketThread.interrupt();  // Attempt to interrupt the thread
+                mSocketThread.join();  // Wait for the thread to terminate
+            } catch (InterruptedException e) {
+                throw new RuntimeException("Error stopping server socket thread", e);
+            }
+        }
     }
 
     /**
@@ -182,18 +213,15 @@ public class ConnectivityManagerSnippet implements Snippet {
      * @param message    The message to send.
      */
     @AsyncRpc(description = " Reads from a socket.")
-    public void connectivityReadSocket(String callbackId, String message) throws
-            ConnectivityManagerSnippetSnippetException {
+    public void connectivityReadSocket(String callbackId, String message)
+            throws ConnectivityManagerSnippetSnippetException {
         checkSocket();
         SnippetEvent event = new SnippetEvent(callbackId, "ConnectivityReadSocket");
-        String currentMethod = "getInputStream";
         try {
             InputStream is = mSocket.getInputStream();
-
             // simple interaction: read X bytes, write Y bytes
             byte[] buffer = new byte[1024];
             byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
-            currentMethod = "read()";
             int numBytes = is.read(buffer, 0, messageBytes.length);
             if (numBytes != messageBytes.length) {
                 throw new ConnectivityManagerSnippetSnippetException(
@@ -207,14 +235,12 @@ public class ConnectivityManagerSnippet implements Snippet {
             EventCache.getInstance().postEvent(event);
         } catch (IOException | ConnectivityManagerSnippetSnippetException e) {
             event.getData().putBoolean("isSuccess", false);
-            String errorMessage =
-                    "Failure while executing " + currentMethod + ",Error: " + e.getMessage();
+            String errorMessage = "Failure while executing read(),Error: " + e.getMessage();
             event.getData().putString("reason", errorMessage);
             EventCache.getInstance().postEvent(event);
         }
 
     }
-
 
     /**
      * Writes to a socket.
@@ -224,8 +250,8 @@ public class ConnectivityManagerSnippet implements Snippet {
      * @throws ConnectivityManagerSnippetSnippetException
      */
     @AsyncRpc(description = " Writes to a socket.")
-    public void connectivityWriteSocket(String callbackId, String message) throws
-            ConnectivityManagerSnippetSnippetException {
+    public void connectivityWriteSocket(String callbackId, String message)
+            throws ConnectivityManagerSnippetSnippetException {
         checkSocket();
         SnippetEvent event = new SnippetEvent(callbackId, "ConnectivityWriteSocket");
         String currentMethod = "getOutputStream";
@@ -254,12 +280,24 @@ public class ConnectivityManagerSnippet implements Snippet {
      * @throws ConnectivityManagerSnippetSnippetException
      */
     @Rpc(description = "Close the socket.")
-    public void connectivityCloseSocket() throws ConnectivityManagerSnippetSnippetException {
-        checkSocket();
-        try {
+    public void connectivityCloseSocket() throws IOException {
+        if (mSocket != null && !mSocket.isClosed()) {
             mSocket.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+            mSocket = null;
+        }
+    }
+
+
+    /**
+     * Closes the server socket.
+     *
+     * @throws ConnectivityManagerSnippetSnippetException
+     */
+    @Rpc(description = "Close the server socket.")
+    public void connectivityCloseServerSocket() throws IOException {
+        if (mServerSocket != null && !mServerSocket.isClosed()) {
+            mServerSocket.close();
+            mServerSocket = null;
         }
     }
 
@@ -269,14 +307,10 @@ public class ConnectivityManagerSnippet implements Snippet {
      * @throws ConnectivityManagerSnippetSnippetException
      */
     @Rpc(description = "Close the outputStream.")
-    public void connectivityCloseWrite() throws ConnectivityManagerSnippetSnippetException {
+    public void connectivityCloseWrite()
+            throws IOException, ConnectivityManagerSnippetSnippetException {
         checkOutputStream();
-        try {
-            mOutputStream.close();
-        } catch (IOException e) {
-            throw new ConnectivityManagerSnippetSnippetException("Failed to close output stream.");
-        }
-
+        mOutputStream.close();
     }
 
     private void checkOutputStream() throws ConnectivityManagerSnippetSnippetException {
@@ -291,8 +325,8 @@ public class ConnectivityManagerSnippet implements Snippet {
      * @throws ConnectivityManagerSnippetSnippetException
      */
     @Rpc(description = " Create to a socket.")
-    public void connectivityCreateSocket() throws ConnectivityManagerSnippetSnippetException,
-            IOException {
+    public void connectivityCreateSocket()
+            throws ConnectivityManagerSnippetSnippetException, IOException {
         checkNetwork();
         checkNetworkCapabilities();
         WifiAwareNetworkInfo peerAwareInfo =
@@ -300,9 +334,9 @@ public class ConnectivityManagerSnippet implements Snippet {
         Inet6Address peerIpv6Addr = peerAwareInfo.getPeerIpv6Addr();
         int peerPort = peerAwareInfo.getPort();
         int transportProtocol = peerAwareInfo.getTransportProtocol();
-        if (transportProtocol != 6) {
+        if (transportProtocol != TRANSPORT_PROTOCOL_TCP) {
             throw new ConnectivityManagerSnippetSnippetException(
-                    "Only support TCP transport " + "protocol.");
+                    "Only support TCP transport protocol.");
         }
         if (peerPort <= 0) {
             throw new ConnectivityManagerSnippetSnippetException("Invalid port number.");
@@ -360,6 +394,13 @@ public class ConnectivityManagerSnippet implements Snippet {
     public void shutdown() throws Exception {
         if (mNetworkCallBack != null) {
             mConnectivityManager.unregisterNetworkCallback(mNetworkCallBack);
+        }
+        connectivityStopAcceptThread();
+        try {
+            connectivityCloseSocket();
+            connectivityCloseServerSocket();
+        } catch (IOException e) {
+            throw new RuntimeException("Error closing sockets", e);
         }
         Snippet.super.shutdown();
     }
