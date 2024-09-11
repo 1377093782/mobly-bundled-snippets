@@ -33,6 +33,9 @@ import com.google.android.mobly.snippet.rpc.AsyncRpc;
 import com.google.android.mobly.snippet.rpc.Rpc;
 import com.google.android.mobly.snippet.util.Log;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -60,6 +63,7 @@ public class ConnectivityManagerSnippet implements Snippet {
     private Network mNetwork;
     private OutputStream mOutputStream;
     private Thread mSocketThread;
+    private int mCloseSocketTimeout = 15 * 1000;
 
 
     class ConnectivityManagerSnippetSnippetException extends Exception {
@@ -186,7 +190,6 @@ public class ConnectivityManagerSnippet implements Snippet {
      *
      * @return True if the server socket thread is alive.
      */
-    @Rpc(description = "Check if the server socket thread is alive.")
     public boolean connectivityIsSocketThreadAlive() {
         return mSocketThread != null && mSocketThread.isAlive();
     }
@@ -195,13 +198,15 @@ public class ConnectivityManagerSnippet implements Snippet {
      * Stops the server socket thread if it's running.
      */
     @Rpc(description = "Stop the server socket thread if it's running.")
-    public void connectivityStopAcceptThread() {
+    public void connectivityStopAcceptThread() throws IOException {
         if (connectivityIsSocketThreadAlive()) {
             try {
                 mSocketThread.interrupt();  // Attempt to interrupt the thread
-                mSocketThread.join();  // Wait for the thread to terminate
+                mSocketThread.join(mCloseSocketTimeout);  // Wait for the thread to terminate
             } catch (InterruptedException e) {
                 throw new RuntimeException("Error stopping server socket thread", e);
+            } finally {
+                closeAllSocket();
             }
         }
     }
@@ -209,14 +214,13 @@ public class ConnectivityManagerSnippet implements Snippet {
     /**
      * Reads from a socket.
      *
-     * @param callbackId Assigned automatically by mobly.
-     * @param message    The message to send.
+     * @param message The message to send.
      */
-    @AsyncRpc(description = " Reads from a socket.")
-    public void connectivityReadSocket(String callbackId, String message)
-            throws ConnectivityManagerSnippetSnippetException {
+    @Rpc(description = " Reads from a socket.")
+    public JSONObject connectivityReadSocket(String message)
+            throws ConnectivityManagerSnippetSnippetException, JSONException {
         checkSocket();
-        SnippetEvent event = new SnippetEvent(callbackId, "ConnectivityReadSocket");
+        JSONObject result = new JSONObject();
         try {
             InputStream is = mSocket.getInputStream();
             // simple interaction: read X bytes, write Y bytes
@@ -231,13 +235,13 @@ public class ConnectivityManagerSnippet implements Snippet {
                 throw new ConnectivityManagerSnippetSnippetException(
                         "Did not read expected bytes - got --" + Arrays.toString(buffer));
             }
-            event.getData().putBoolean("isSuccess", true);
-            EventCache.getInstance().postEvent(event);
+            result.put("isSuccess", true);
+            return result;
         } catch (IOException | ConnectivityManagerSnippetSnippetException e) {
-            event.getData().putBoolean("isSuccess", false);
+            result.put("isSuccess", false);
             String errorMessage = "Failure while executing read(),Error: " + e.getMessage();
-            event.getData().putString("reason", errorMessage);
-            EventCache.getInstance().postEvent(event);
+            result.put("reason", errorMessage);
+            return result;
         }
 
     }
@@ -291,7 +295,7 @@ public class ConnectivityManagerSnippet implements Snippet {
     /**
      * Closes the server socket.
      *
-     * @throws ConnectivityManagerSnippetSnippetException
+     * @throws IOException
      */
     @Rpc(description = "Close the server socket.")
     public void connectivityCloseServerSocket() throws IOException {
@@ -342,6 +346,7 @@ public class ConnectivityManagerSnippet implements Snippet {
             throw new ConnectivityManagerSnippetSnippetException("Invalid port number.");
         }
         mSocket = mNetwork.getSocketFactory().createSocket(peerIpv6Addr, peerPort);
+        checkSocket();
 
     }
 
@@ -390,18 +395,22 @@ public class ConnectivityManagerSnippet implements Snippet {
         }
     }
 
+    /**
+     * Close all sockets.
+     *
+     * @throws IOException
+     */
+    public void closeAllSocket() throws IOException {
+        connectivityCloseSocket();
+        connectivityCloseServerSocket();
+    }
+
     @Override
     public void shutdown() throws Exception {
         if (mNetworkCallBack != null) {
             mConnectivityManager.unregisterNetworkCallback(mNetworkCallBack);
         }
         connectivityStopAcceptThread();
-        try {
-            connectivityCloseSocket();
-            connectivityCloseServerSocket();
-        } catch (IOException e) {
-            throw new RuntimeException("Error closing sockets", e);
-        }
         Snippet.super.shutdown();
     }
 }
