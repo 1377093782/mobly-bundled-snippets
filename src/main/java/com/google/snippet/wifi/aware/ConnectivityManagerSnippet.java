@@ -33,9 +33,7 @@ import com.google.android.mobly.snippet.rpc.AsyncRpc;
 import com.google.android.mobly.snippet.rpc.Rpc;
 import com.google.android.mobly.snippet.util.Log;
 
-import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,7 +42,6 @@ import java.net.Inet6Address;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 
 public class ConnectivityManagerSnippet implements Snippet {
     private static final String EVENT_KEY_CB_NAME = "callbackName";
@@ -218,33 +215,21 @@ public class ConnectivityManagerSnippet implements Snippet {
      *
      * @param len The number of bytes to read.
      */
-    @Rpc(description = " Reads from a socket.")
-    public JSONObject connectivityReadSocket(int len)
+    @Rpc(description = "Reads from a socket.")
+    public String connectivityReadSocket(int len)
             throws ConnectivityManagerSnippetSnippetException, JSONException, IOException {
         checkSocket();
-        JSONObject result = new JSONObject();
         InputStream is = mSocket.getInputStream();
-        // simple interaction: read X bytes, write Y bytes
+        // Read the specified number of bytes from the input stream
         byte[] buffer = new byte[len];
         int bytesReadLength = is.read(buffer, 0, len); // Read up to len bytes
         if (bytesReadLength == -1) { // End of stream reached unexpectedly
             throw new ConnectivityManagerSnippetSnippetException(
                     "End of stream reached before reading expected bytes.");
         }
-        // Trim the buffer to only the bytes actually read
-        byte[] actualBytesRead = Arrays.copyOf(buffer, bytesReadLength);
-
-        // Return the bytes read as a JSON array to be processed in Python
-        JSONArray byteArray = new JSONArray();
-        for (byte b : actualBytesRead) {
-            byteArray.put(b);
-        }
-
-        result.put("bytesReadLength", bytesReadLength);
-        result.put("data", byteArray);  // Return the byte array
-        return result;
-
-
+        // Convert the bytes read to a String
+        String receiveStrMsg = new String(buffer, 0, bytesReadLength, StandardCharsets.UTF_8);
+        return receiveStrMsg;
     }
 
     /**
@@ -253,14 +238,13 @@ public class ConnectivityManagerSnippet implements Snippet {
      * @param message The message to send.
      * @throws ConnectivityManagerSnippetSnippetException
      */
-    @Rpc(description = " Writes to a socket.")
+    @Rpc(description = "Writes to a socket.")
     public Boolean connectivityWriteSocket(String message)
             throws ConnectivityManagerSnippetSnippetException, IOException {
         checkSocket();
-        JSONObject result = new JSONObject();
         mOutputStream = mSocket.getOutputStream();
-        // simple interaction: read X bytes, write Y bytes
         byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
+        // Write the message to the output stream
         mOutputStream.write(bytes, 0, bytes.length);
         return true;
 
@@ -321,11 +305,13 @@ public class ConnectivityManagerSnippet implements Snippet {
      *
      * @throws ConnectivityManagerSnippetSnippetException
      */
-    @Rpc(description = " Create to a socket.")
+    @Rpc(description = "Create to a socket.")
     public void connectivityCreateSocket()
             throws ConnectivityManagerSnippetSnippetException, IOException {
         if (mSocket != null) {
-            throw new ConnectivityManagerSnippetSnippetException("Socket is already created.");
+            throw new ConnectivityManagerSnippetSnippetException("Socket is already created"
+                    + ".Please call connectivityCloseSocket() or connectivityStopAcceptThread() "
+                    + "first.");
         }
         checkNetwork();
         checkNetworkCapabilities();
