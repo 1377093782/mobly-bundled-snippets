@@ -33,6 +33,7 @@ import com.google.android.mobly.snippet.rpc.AsyncRpc;
 import com.google.android.mobly.snippet.rpc.Rpc;
 import com.google.android.mobly.snippet.util.Log;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -57,13 +58,14 @@ public class ConnectivityManagerSnippet implements Snippet {
     private final ConnectivityManager mConnectivityManager;
     private NetworkCallback mNetworkCallBack;
     private ServerSocket mServerSocket;
-    private int mAcceptTimeout = 30 * 1000;
     private Socket mSocket;
     private NetworkCapabilities mNetworkCapabilities;
     private Network mNetwork;
     private OutputStream mOutputStream;
     private Thread mSocketThread;
-    private int mCloseSocketTimeout = 15 * 1000;
+    private final int mCloseSocketTimeout = 15 * 1000;
+    private final int mAcceptTimeout = 30 * 1000;
+    private final int mSocketSoTimeout = 30 * 1000;
 
 
     class ConnectivityManagerSnippetSnippetException extends Exception {
@@ -214,67 +216,54 @@ public class ConnectivityManagerSnippet implements Snippet {
     /**
      * Reads from a socket.
      *
-     * @param message The message to send.
+     * @param len The number of bytes to read.
      */
     @Rpc(description = " Reads from a socket.")
-    public JSONObject connectivityReadSocket(String message)
-            throws ConnectivityManagerSnippetSnippetException, JSONException {
+    public JSONObject connectivityReadSocket(int len)
+            throws ConnectivityManagerSnippetSnippetException, JSONException, IOException {
         checkSocket();
         JSONObject result = new JSONObject();
-        try {
-            InputStream is = mSocket.getInputStream();
-            // simple interaction: read X bytes, write Y bytes
-            byte[] buffer = new byte[1024];
-            byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
-            int numBytes = is.read(buffer, 0, messageBytes.length);
-            if (numBytes != messageBytes.length) {
-                throw new ConnectivityManagerSnippetSnippetException(
-                        "Failed to read expected number of bytes - only got --" + numBytes);
-            }
-            if (!Arrays.equals(messageBytes, Arrays.copyOf(buffer, messageBytes.length))) {
-                throw new ConnectivityManagerSnippetSnippetException(
-                        "Did not read expected bytes - got --" + Arrays.toString(buffer));
-            }
-            result.put("isSuccess", true);
-            return result;
-        } catch (IOException | ConnectivityManagerSnippetSnippetException e) {
-            result.put("isSuccess", false);
-            String errorMessage = "Failure while executing read(),Error: " + e.getMessage();
-            result.put("reason", errorMessage);
-            return result;
+        InputStream is = mSocket.getInputStream();
+        // simple interaction: read X bytes, write Y bytes
+        byte[] buffer = new byte[len];
+        int bytesReadLength = is.read(buffer, 0, len); // Read up to len bytes
+        if (bytesReadLength == -1) { // End of stream reached unexpectedly
+            throw new ConnectivityManagerSnippetSnippetException(
+                    "End of stream reached before reading expected bytes.");
         }
+        // Trim the buffer to only the bytes actually read
+        byte[] actualBytesRead = Arrays.copyOf(buffer, bytesReadLength);
+
+        // Return the bytes read as a JSON array to be processed in Python
+        JSONArray byteArray = new JSONArray();
+        for (byte b : actualBytesRead) {
+            byteArray.put(b);
+        }
+
+        result.put("bytesReadLength", bytesReadLength);
+        result.put("data", byteArray);  // Return the byte array
+        return result;
+
 
     }
 
     /**
      * Writes to a socket.
      *
-     * @param callbackId Assigned automatically by mobly.
-     * @param message    The message to send.
+     * @param message The message to send.
      * @throws ConnectivityManagerSnippetSnippetException
      */
-    @AsyncRpc(description = " Writes to a socket.")
-    public void connectivityWriteSocket(String callbackId, String message)
-            throws ConnectivityManagerSnippetSnippetException {
+    @Rpc(description = " Writes to a socket.")
+    public Boolean connectivityWriteSocket(String message)
+            throws ConnectivityManagerSnippetSnippetException, IOException {
         checkSocket();
-        SnippetEvent event = new SnippetEvent(callbackId, "ConnectivityWriteSocket");
-        String currentMethod = "getOutputStream";
-        try {
-            mOutputStream = mSocket.getOutputStream();
-            // simple interaction: read X bytes, write Y bytes
-            byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
-            currentMethod = "write()";
-            mOutputStream.write(bytes, 0, bytes.length);
-            event.getData().putBoolean("isSuccess", true);
-            EventCache.getInstance().postEvent(event);
+        JSONObject result = new JSONObject();
+        mOutputStream = mSocket.getOutputStream();
+        // simple interaction: read X bytes, write Y bytes
+        byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
+        mOutputStream.write(bytes, 0, bytes.length);
+        return true;
 
-        } catch (IOException e) {
-            event.getData().putBoolean("isSuccess", false);
-            String errorMessage =
-                    "Failure while executing " + currentMethod + ",Error: " + e.getMessage();
-            event.getData().putString("reason", errorMessage);
-            EventCache.getInstance().postEvent(event);
-        }
 
     }
 
@@ -287,7 +276,9 @@ public class ConnectivityManagerSnippet implements Snippet {
     public void connectivityCloseSocket() throws IOException {
         if (mSocket != null && !mSocket.isClosed()) {
             mSocket.close();
-            mSocket = null;
+            if (mSocket.isClosed()) {
+                mSocket = null;
+            }
         }
     }
 
@@ -301,7 +292,9 @@ public class ConnectivityManagerSnippet implements Snippet {
     public void connectivityCloseServerSocket() throws IOException {
         if (mServerSocket != null && !mServerSocket.isClosed()) {
             mServerSocket.close();
-            mServerSocket = null;
+            if (mServerSocket.isClosed()) {
+                mServerSocket = null;
+            }
         }
     }
 
@@ -331,6 +324,9 @@ public class ConnectivityManagerSnippet implements Snippet {
     @Rpc(description = " Create to a socket.")
     public void connectivityCreateSocket()
             throws ConnectivityManagerSnippetSnippetException, IOException {
+        if (mSocket != null) {
+            throw new ConnectivityManagerSnippetSnippetException("Socket is already created.");
+        }
         checkNetwork();
         checkNetworkCapabilities();
         WifiAwareNetworkInfo peerAwareInfo =
@@ -346,7 +342,8 @@ public class ConnectivityManagerSnippet implements Snippet {
             throw new ConnectivityManagerSnippetSnippetException("Invalid port number.");
         }
         mSocket = mNetwork.getSocketFactory().createSocket(peerIpv6Addr, peerPort);
-        checkSocket();
+        mSocket.setSoTimeout(mSocketSoTimeout);
+
 
     }
 
@@ -411,6 +408,7 @@ public class ConnectivityManagerSnippet implements Snippet {
             mConnectivityManager.unregisterNetworkCallback(mNetworkCallBack);
         }
         connectivityStopAcceptThread();
+        closeAllSocket();
         Snippet.super.shutdown();
     }
 }
