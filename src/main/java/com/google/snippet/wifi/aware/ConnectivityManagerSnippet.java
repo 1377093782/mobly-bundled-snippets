@@ -260,10 +260,9 @@ public class ConnectivityManagerSnippet implements Snippet {
     public void connectivityCloseSocket() throws IOException {
         if (mSocket != null && !mSocket.isClosed()) {
             mSocket.close();
-            if (mSocket.isClosed()) {
-                mSocket = null;
-            }
         }
+        mSocket = null;
+
     }
 
 
@@ -276,10 +275,9 @@ public class ConnectivityManagerSnippet implements Snippet {
     public void connectivityCloseServerSocket() throws IOException {
         if (mServerSocket != null && !mServerSocket.isClosed()) {
             mServerSocket.close();
-            if (mServerSocket.isClosed()) {
-                mServerSocket = null;
-            }
         }
+        mServerSocket = null;
+
     }
 
     /**
