@@ -63,6 +63,7 @@ public class ConnectivityManagerSnippet implements Snippet {
     private final int mCloseSocketTimeout = 15 * 1000;
     private final int mAcceptTimeout = 30 * 1000;
     private final int mSocketSoTimeout = 30 * 1000;
+    private final Object mSocketLock = new Object();
 
 
     class ConnectivityManagerSnippetSnippetException extends Exception {
@@ -150,7 +151,6 @@ public class ConnectivityManagerSnippet implements Snippet {
     @Rpc(description = "Get the local port of a server socket.")
     public int connectivityInitServerSocket() throws ConnectivityManagerSnippetSnippetException {
         int port = 0;
-
         try {
             mServerSocket = new ServerSocket(0);
             // https://developer.android.com/reference/java/net/ServerSocket#setSoTimeout(int)
@@ -174,10 +174,11 @@ public class ConnectivityManagerSnippet implements Snippet {
             try {
                 //This will block the execution of the program. Usually we will put it into a child
                 // thread to run
-                mSocket = mServerSocket.accept();
+                synchronized (mSocketLock) {
+                    mSocket = mServerSocket.accept();
+                }
             } catch (IOException e) {
-
-                throw new RuntimeException("Socket accept error", e);
+                Log.e("Socket accept error", e);
             }
         });
         mSocketThread.start();
@@ -199,13 +200,12 @@ public class ConnectivityManagerSnippet implements Snippet {
     public void connectivityStopAcceptThread() throws IOException {
         if (connectivityIsSocketThreadAlive()) {
             try {
-                mSocketThread.interrupt();  // Attempt to interrupt the thread
+                connectivityCloseServerSocket();
                 mSocketThread.join(mCloseSocketTimeout);  // Wait for the thread to terminate
             } catch (InterruptedException e) {
                 throw new RuntimeException("Error stopping server socket thread", e);
             } finally {
                 connectivityCloseSocket();
-                connectivityCloseServerSocket();
             }
         }
     }
@@ -219,17 +219,20 @@ public class ConnectivityManagerSnippet implements Snippet {
     public String connectivityReadSocket(int len)
             throws ConnectivityManagerSnippetSnippetException, JSONException, IOException {
         checkSocket();
-        InputStream is = mSocket.getInputStream();
-        // Read the specified number of bytes from the input stream
-        byte[] buffer = new byte[len];
-        int bytesReadLength = is.read(buffer, 0, len); // Read up to len bytes
-        if (bytesReadLength == -1) { // End of stream reached unexpectedly
-            throw new ConnectivityManagerSnippetSnippetException(
-                    "End of stream reached before reading expected bytes.");
+        synchronized (mSocketLock) {
+            InputStream is = mSocket.getInputStream();
+
+            // Read the specified number of bytes from the input stream
+            byte[] buffer = new byte[len];
+            int bytesReadLength = is.read(buffer, 0, len); // Read up to len bytes
+            if (bytesReadLength == -1) { // End of stream reached unexpectedly
+                throw new ConnectivityManagerSnippetSnippetException(
+                        "End of stream reached before reading expected bytes.");
+            }
+            // Convert the bytes read to a String
+            String receiveStrMsg = new String(buffer, 0, bytesReadLength, StandardCharsets.UTF_8);
+            return receiveStrMsg;
         }
-        // Convert the bytes read to a String
-        String receiveStrMsg = new String(buffer, 0, bytesReadLength, StandardCharsets.UTF_8);
-        return receiveStrMsg;
     }
 
     /**
@@ -242,10 +245,13 @@ public class ConnectivityManagerSnippet implements Snippet {
     public Boolean connectivityWriteSocket(String message)
             throws ConnectivityManagerSnippetSnippetException, IOException {
         checkSocket();
-        mOutputStream = mSocket.getOutputStream();
+        synchronized (mSocketLock) {
+            mOutputStream = mSocket.getOutputStream();
+        }
         byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
         // Write the message to the output stream
         mOutputStream.write(bytes, 0, bytes.length);
+        mOutputStream.flush();
         return true;
 
 
@@ -257,10 +263,13 @@ public class ConnectivityManagerSnippet implements Snippet {
      * @throws ConnectivityManagerSnippetSnippetException
      */
     public void connectivityCloseSocket() throws IOException {
-        if (mSocket != null && !mSocket.isClosed()) {
-            mSocket.close();
+        synchronized (mSocketLock) {
+            if (mSocket != null && !mSocket.isClosed()) {
+                mSocket.close();
+            }
+            mSocket = null;
         }
-        mSocket = null;
+
 
     }
 
@@ -275,6 +284,7 @@ public class ConnectivityManagerSnippet implements Snippet {
         }
         mServerSocket = null;
 
+
     }
 
     /**
@@ -287,6 +297,7 @@ public class ConnectivityManagerSnippet implements Snippet {
             throws IOException, ConnectivityManagerSnippetSnippetException {
         checkOutputStream();
         mOutputStream.close();
+        mOutputStream = null;
     }
 
     private void checkOutputStream() throws ConnectivityManagerSnippetSnippetException {
@@ -303,15 +314,20 @@ public class ConnectivityManagerSnippet implements Snippet {
     @Rpc(description = "Create to a socket.")
     public void connectivityCreateSocket()
             throws ConnectivityManagerSnippetSnippetException, IOException {
-        if (mSocket != null) {
-            throw new ConnectivityManagerSnippetSnippetException("Socket is already created"
-                    + ".Please call connectivityCloseSocket() or connectivityStopAcceptThread() "
-                    + "first.");
+        synchronized (mSocketLock) {
+            if (mSocket != null) {
+                throw new ConnectivityManagerSnippetSnippetException("Socket is already created"
+                        + ".Please call connectivityCloseSocket() or connectivityStopAcceptThread"
+                        + "() " + "first.");
+            }
         }
         checkNetwork();
         checkNetworkCapabilities();
         WifiAwareNetworkInfo peerAwareInfo =
                 (WifiAwareNetworkInfo) mNetworkCapabilities.getTransportInfo();
+        if (peerAwareInfo == null) {
+            throw new ConnectivityManagerSnippetSnippetException("PeerAwareInfo is null.");
+        }
         Inet6Address peerIpv6Addr = peerAwareInfo.getPeerIpv6Addr();
         int peerPort = peerAwareInfo.getPort();
         int transportProtocol = peerAwareInfo.getTransportProtocol();
@@ -322,9 +338,10 @@ public class ConnectivityManagerSnippet implements Snippet {
         if (peerPort <= 0) {
             throw new ConnectivityManagerSnippetSnippetException("Invalid port number.");
         }
-        mSocket = mNetwork.getSocketFactory().createSocket(peerIpv6Addr, peerPort);
-        mSocket.setSoTimeout(mSocketSoTimeout);
-
+        synchronized (mSocketLock) {
+            mSocket = mNetwork.getSocketFactory().createSocket(peerIpv6Addr, peerPort);
+            mSocket.setSoTimeout(mSocketSoTimeout);
+        }
 
     }
 
@@ -357,8 +374,10 @@ public class ConnectivityManagerSnippet implements Snippet {
      * @throws ConnectivityManagerSnippetSnippetException
      */
     private void checkSocket() throws ConnectivityManagerSnippetSnippetException {
-        if (mSocket == null) {
-            throw new ConnectivityManagerSnippetSnippetException("Socket is not created.");
+        synchronized (mSocketLock) {
+            if (mSocket == null) {
+                throw new ConnectivityManagerSnippetSnippetException("Socket is not created.");
+            }
         }
     }
 
@@ -387,10 +406,18 @@ public class ConnectivityManagerSnippet implements Snippet {
 
     @Override
     public void shutdown() throws Exception {
-        if (mNetworkCallBack != null) {
-            mConnectivityManager.unregisterNetworkCallback(mNetworkCallBack);
+        try {
+            if (mNetworkCallBack != null) {
+                mConnectivityManager.unregisterNetworkCallback(mNetworkCallBack);
+            }
+        } catch (Exception e) {
+            Log.e("Error unregistering network callback", e);
         }
-        connectivityCloseAllSocket();
+        try {
+            connectivityCloseAllSocket();
+        } catch (Exception e) {
+            Log.e("Error closing sockets", e);
+        }
         Snippet.super.shutdown();
     }
 }
