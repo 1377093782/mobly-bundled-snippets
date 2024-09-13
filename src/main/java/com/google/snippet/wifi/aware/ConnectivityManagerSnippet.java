@@ -115,7 +115,6 @@ public class ConnectivityManagerSnippet implements Snippet {
         }
     }
 
-
     /**
      * Requests a network with given network request.
      *
@@ -149,7 +148,7 @@ public class ConnectivityManagerSnippet implements Snippet {
      * @return The local port of a server socket.
      */
     @Rpc(description = "Get the local port of a server socket.")
-    public int connectivityGetLocalPort() throws ConnectivityManagerSnippetSnippetException {
+    public int connectivityInitServerSocket() throws ConnectivityManagerSnippetSnippetException {
         int port = 0;
 
         try {
@@ -169,7 +168,7 @@ public class ConnectivityManagerSnippet implements Snippet {
      * Starts a server socket to accept incoming connections.
      */
     @Rpc(description = "Start a server socket to accept incoming connections.")
-    public void connectivityAccept() throws ConnectivityManagerSnippetSnippetException {
+    public void connectivityServerSocketAccept() throws ConnectivityManagerSnippetSnippetException {
         checkServerSocket();
         mSocketThread = new Thread(() -> {
             try {
@@ -205,7 +204,8 @@ public class ConnectivityManagerSnippet implements Snippet {
             } catch (InterruptedException e) {
                 throw new RuntimeException("Error stopping server socket thread", e);
             } finally {
-                closeAllSocket();
+                connectivityCloseSocket();
+                connectivityCloseServerSocket();
             }
         }
     }
@@ -256,7 +256,6 @@ public class ConnectivityManagerSnippet implements Snippet {
      *
      * @throws ConnectivityManagerSnippetSnippetException
      */
-    @Rpc(description = "Close the socket.")
     public void connectivityCloseSocket() throws IOException {
         if (mSocket != null && !mSocket.isClosed()) {
             mSocket.close();
@@ -265,13 +264,11 @@ public class ConnectivityManagerSnippet implements Snippet {
 
     }
 
-
     /**
      * Closes the server socket.
      *
      * @throws IOException
      */
-    @Rpc(description = "Close the server socket.")
     public void connectivityCloseServerSocket() throws IOException {
         if (mServerSocket != null && !mServerSocket.isClosed()) {
             mServerSocket.close();
@@ -381,7 +378,9 @@ public class ConnectivityManagerSnippet implements Snippet {
      *
      * @throws IOException
      */
-    public void closeAllSocket() throws IOException {
+    @Rpc(description = "Close all sockets.")
+    public void connectivityCloseAllSocket() throws IOException {
+        connectivityStopAcceptThread();
         connectivityCloseSocket();
         connectivityCloseServerSocket();
     }
@@ -391,8 +390,7 @@ public class ConnectivityManagerSnippet implements Snippet {
         if (mNetworkCallBack != null) {
             mConnectivityManager.unregisterNetworkCallback(mNetworkCallBack);
         }
-        connectivityStopAcceptThread();
-        closeAllSocket();
+        connectivityCloseAllSocket();
         Snippet.super.shutdown();
     }
 }

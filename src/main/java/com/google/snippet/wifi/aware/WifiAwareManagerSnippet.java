@@ -85,7 +85,8 @@ public class WifiAwareManagerSnippet implements Snippet {
         mContext = ApplicationProvider.getApplicationContext();
         PermissionUtils.checkPermissions(mContext, Manifest.permission.ACCESS_WIFI_STATE,
                 Manifest.permission.CHANGE_WIFI_STATE, Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.NEARBY_WIFI_DEVICES);
+                Manifest.permission.NEARBY_WIFI_DEVICES
+        );
         mWifiAwareManager = mContext.getSystemService(WifiAwareManager.class);
         checkWifiAwareManager();
         HandlerThread handlerThread = new HandlerThread("Snippet-Aware");
@@ -96,8 +97,10 @@ public class WifiAwareManagerSnippet implements Snippet {
     /**
      * Use {@link WifiAwareManager#attach(AttachCallback, Handler)} to attach to the Wi-Fi Aware.
      */
-    @AsyncRpc(description = "Attach to the Wi-Fi Aware service - enabling the application to "
-            + "create discovery sessions or publish or subscribe to services.")
+    @AsyncRpc(
+            description = "Attach to the Wi-Fi Aware service - enabling the application to "
+                    + "create discovery sessions or publish or subscribe to services."
+    )
     public void wifiAwareAttach(String callbackId) throws WifiAwareManagerSnippetException {
         synchronized (mLock) {
             if (mAttachState != AttachState.IDLE) {
@@ -264,8 +267,10 @@ public class WifiAwareManagerSnippet implements Snippet {
         }
 
         @Override
-        public void onServiceDiscovered(PeerHandle peerHandle, byte[] serviceSpecificInfo,
-                                        List<byte[]> matchFilter) {
+        public void onServiceDiscovered(
+                PeerHandle peerHandle, byte[] serviceSpecificInfo,
+                List<byte[]> matchFilter
+        ) {
             mPeerHandle = peerHandle;
             SnippetEvent event = new SnippetEvent(mCallBackId, "onServiceDiscovered");
             event.getData().putByteArray("serviceSpecificInfo", serviceSpecificInfo);
@@ -287,9 +292,11 @@ public class WifiAwareManagerSnippet implements Snippet {
         }
 
         @Override
-        public void onServiceDiscoveredWithinRange(PeerHandle peerHandle,
-                                                   byte[] serviceSpecificInfo,
-                                                   List<byte[]> matchFilter, int distanceMm) {
+        public void onServiceDiscoveredWithinRange(
+                PeerHandle peerHandle,
+                byte[] serviceSpecificInfo,
+                List<byte[]> matchFilter, int distanceMm
+        ) {
             mPeerHandle = peerHandle;
             SnippetEvent event = new SnippetEvent(mCallBackId, "onServiceDiscoveredWithinRange");
             event.getData().putByteArray("serviceSpecificInfo", serviceSpecificInfo);
@@ -348,8 +355,10 @@ public class WifiAwareManagerSnippet implements Snippet {
         }
 
         @Override
-        public void onPairingVerificationSucceed(@NonNull PeerHandle peerHandle,
-                                                 @NonNull String alias) {
+        public void onPairingVerificationSucceed(
+                @NonNull PeerHandle peerHandle,
+                @NonNull String alias
+        ) {
             super.onPairingVerificationSucceed(mPeerHandle, alias);
             SnippetEvent event = new SnippetEvent(mCallBackId, "onPairingVerificationSucceed");
             event.getData().putString("pairedAlias", alias);
@@ -399,7 +408,8 @@ public class WifiAwareManagerSnippet implements Snippet {
      *                        WifiAwareJsonDeserializer.
      */
     @AsyncRpc(
-            description = "Create a Wi-Fi Aware subscribe discovery session and handle callbacks.")
+            description = "Create a Wi-Fi Aware subscribe discovery session and handle callbacks."
+    )
     public void wifiAwareSubscribe(String callbackId, SubscribeConfig subscribeConfig)
             throws JSONException, WifiAwareManagerSnippetException {
         checkWifiAwareSession();
@@ -466,7 +476,8 @@ public class WifiAwareManagerSnippet implements Snippet {
         // 4. send message & wait for send status
         checkDiscoverySession();
         mDiscoverySession.sendMessage(mPeerHandle, messageId,
-                message.getBytes(StandardCharsets.UTF_8));
+                message.getBytes(StandardCharsets.UTF_8)
+        );
     }
 
     /**
@@ -507,8 +518,10 @@ public class WifiAwareManagerSnippet implements Snippet {
      * @throws JSONException                    if there is an error parsing the JSON object.
      * @throws WifiAwareManagerSnippetException if there is an error creating the network specifier.
      */
-    @Rpc(description = "Create a network specifier to be used when specifying a Aware network "
-            + "request")
+    @Rpc(
+            description = "Create a network specifier to be used when specifying a Aware network "
+                    + "request"
+    )
     public String wifiAwareCreateNetworkSpecifier(@RpcOptional JSONObject jsonObject)
             throws JSONException, WifiAwareManagerSnippetException {
         checkDiscoverySession();
@@ -527,6 +540,7 @@ public class WifiAwareManagerSnippet implements Snippet {
         // Encode the byte array to a Base64 string
         return Base64.encodeToString(bytes, Base64.DEFAULT);
     }
+
     @Override
     public void shutdown() throws Exception {
         wifiAwareCloseDiscoverSession();
