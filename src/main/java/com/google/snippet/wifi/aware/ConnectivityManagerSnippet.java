@@ -172,10 +172,9 @@ public class ConnectivityManagerSnippet implements Snippet {
         checkServerSocket();
         mSocketThread = new Thread(() -> {
             try {
-                //This will block the execution of the program. Usually we will put it into a child
-                // thread to run
+                Socket tempSocket = mServerSocket.accept();
                 synchronized (mSocketLock) {
-                    mSocket = mServerSocket.accept();
+                    mSocket = tempSocket;
                 }
             } catch (IOException e) {
                 Log.e("Socket accept error", e);
@@ -295,9 +294,12 @@ public class ConnectivityManagerSnippet implements Snippet {
     @Rpc(description = "Close the outputStream.")
     public void connectivityCloseWrite()
             throws IOException, ConnectivityManagerSnippetSnippetException {
-        checkOutputStream();
-        mOutputStream.close();
-        mOutputStream = null;
+        synchronized (mSocketLock) {
+
+            checkOutputStream();
+            mOutputStream.close();
+            mOutputStream = null;
+        }
     }
 
     private void checkOutputStream() throws ConnectivityManagerSnippetSnippetException {
@@ -320,25 +322,23 @@ public class ConnectivityManagerSnippet implements Snippet {
                         + ".Please call connectivityCloseSocket() or connectivityStopAcceptThread"
                         + "() " + "first.");
             }
-        }
-        checkNetwork();
-        checkNetworkCapabilities();
-        WifiAwareNetworkInfo peerAwareInfo =
-                (WifiAwareNetworkInfo) mNetworkCapabilities.getTransportInfo();
-        if (peerAwareInfo == null) {
-            throw new ConnectivityManagerSnippetSnippetException("PeerAwareInfo is null.");
-        }
-        Inet6Address peerIpv6Addr = peerAwareInfo.getPeerIpv6Addr();
-        int peerPort = peerAwareInfo.getPort();
-        int transportProtocol = peerAwareInfo.getTransportProtocol();
-        if (transportProtocol != TRANSPORT_PROTOCOL_TCP) {
-            throw new ConnectivityManagerSnippetSnippetException(
-                    "Only support TCP transport protocol.");
-        }
-        if (peerPort <= 0) {
-            throw new ConnectivityManagerSnippetSnippetException("Invalid port number.");
-        }
-        synchronized (mSocketLock) {
+            checkNetwork();
+            checkNetworkCapabilities();
+            WifiAwareNetworkInfo peerAwareInfo =
+                    (WifiAwareNetworkInfo) mNetworkCapabilities.getTransportInfo();
+            if (peerAwareInfo == null) {
+                throw new ConnectivityManagerSnippetSnippetException("PeerAwareInfo is null.");
+            }
+            Inet6Address peerIpv6Addr = peerAwareInfo.getPeerIpv6Addr();
+            int peerPort = peerAwareInfo.getPort();
+            int transportProtocol = peerAwareInfo.getTransportProtocol();
+            if (transportProtocol != TRANSPORT_PROTOCOL_TCP) {
+                throw new ConnectivityManagerSnippetSnippetException(
+                        "Only support TCP transport protocol.");
+            }
+            if (peerPort <= 0) {
+                throw new ConnectivityManagerSnippetSnippetException("Invalid port number.");
+            }
             mSocket = mNetwork.getSocketFactory().createSocket(peerIpv6Addr, peerPort);
             mSocket.setSoTimeout(mSocketSoTimeout);
         }

@@ -20,10 +20,8 @@ package com.google.snippet.wifi.aware;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.net.wifi.aware.AwarePairingConfig;
-import android.net.wifi.aware.Characteristics;
 import android.net.wifi.aware.PublishConfig;
 import android.net.wifi.aware.SubscribeConfig;
-import android.net.wifi.aware.WifiAwareDataPathSecurityConfig;
 import android.net.wifi.aware.WifiAwareNetworkSpecifier;
 import android.os.Parcel;
 import android.util.Base64;
@@ -63,14 +61,10 @@ public class WifiAwareJsonDeserializer {
     private static final String PSK_PASSPHRASE = "psk_passphrase";
     private static final String PORT = "port";
     private static final String TRANSPORT_PROTOCOL = "transport_protocol";
-    private static final String DATA_PATH_SECURITY_CONFIG = "data_path_security_config";
     //NetworkRequest specific
     private static final String TRANSPORT_TYPE = "transport_type";
     private static final String CAPABILITY = "capability";
     private static final String NETWORK_SPECIFIER_PARCEL = "network_specifier_parcel";
-    //WifiAwareDataPathSecurityConfig specific
-    private static final String CIPHER_SUITE = "cipher_suite";
-    private static final String SECURITY_CONFIG_PMK = "pmk";
 
 
     private WifiAwareJsonDeserializer() {
@@ -276,42 +270,6 @@ public class WifiAwareJsonDeserializer {
         }
         if (jsonObject.has(TRANSPORT_PROTOCOL)) {
             builder.setTransportProtocol(jsonObject.getInt(TRANSPORT_PROTOCOL));
-        }
-        if (jsonObject.has(PMK)) {
-            builder.setPmk(jsonObject.getString(PMK).getBytes(StandardCharsets.UTF_8));
-        }
-        if (jsonObject.has(DATA_PATH_SECURITY_CONFIG)) {
-            builder.setDataPathSecurityConfig(jsonToDataPathSSecurityConfig(
-                    jsonObject.getJSONObject(DATA_PATH_SECURITY_CONFIG)));
-        }
-
-        return builder.build();
-
-    }
-
-    /**
-     * Converts request from JSON object to {@link WifiAwareDataPathSecurityConfig}.
-     *
-     * @param jsonObject corresponding to WifiAwareNetworkSpecifier in
-     *                   tests/hostsidetests/multidevices/test/aware/constants.py
-     */
-    public static WifiAwareDataPathSecurityConfig jsonToDataPathSSecurityConfig(
-            JSONObject jsonObject
-    ) throws JSONException {
-        // Default to NCS_SK_128
-        WifiAwareDataPathSecurityConfig.Builder builder =
-                new WifiAwareDataPathSecurityConfig.Builder(
-                        Characteristics.WIFI_AWARE_CIPHER_SUITE_NCS_SK_128);
-        if (jsonObject == null) {
-            return builder.build();
-        }
-        if (jsonObject.has(CIPHER_SUITE)) {
-            int cipherSuite = jsonObject.getInt(CIPHER_SUITE);
-            builder = new WifiAwareDataPathSecurityConfig.Builder(cipherSuite);
-        }
-        if (jsonObject.has(SECURITY_CONFIG_PMK)) {
-            byte[] pmk = jsonObject.getString(SECURITY_CONFIG_PMK).getBytes(StandardCharsets.UTF_8);
-            builder.setPmk(pmk);
         }
         return builder.build();
 
