@@ -166,18 +166,27 @@ public class ConnectivityManagerSnippet implements Snippet {
 
     /**
      * Starts a server socket to accept incoming connections.
+     *
+     * @Param callbackId Assigned automatically by mobly.
      */
-    @Rpc(description = "Start a server socket to accept incoming connections.")
-    public void connectivityServerSocketAccept() throws ConnectivityManagerSnippetSnippetException {
+    @AsyncRpc(description = "Start a server socket to accept incoming connections.")
+    public void connectivityServerSocketAccept(String callbackId)
+            throws ConnectivityManagerSnippetSnippetException {
         checkServerSocket();
+        SnippetEvent event = new SnippetEvent(callbackId, "ServerSocketAccept");
         mSocketThread = new Thread(() -> {
             try {
                 Socket tempSocket = mServerSocket.accept();
                 synchronized (mSocketLock) {
                     mSocket = tempSocket;
                 }
+                event.getData().putBoolean("isAccept", true);
+                EventCache.getInstance().postEvent(event);
             } catch (IOException e) {
                 Log.e("Socket accept error", e);
+                event.getData().putBoolean("isAccept", false);
+                event.getData().putString("error", e.getMessage());
+                EventCache.getInstance().postEvent(event);
             }
         });
         mSocketThread.start();
