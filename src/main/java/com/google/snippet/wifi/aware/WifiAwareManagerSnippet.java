@@ -66,10 +66,12 @@ public class WifiAwareManagerSnippet implements Snippet {
     private final WifiAwareManager mWifiAwareManager;
     private final Handler mHandler;
     // WifiAwareSession will be initialized after attach.
-    private final ConcurrentHashMap<String, WifiAwareSession> mAttachSessions =
+    private final ConcurrentHashMap<String, WifiAwareSession>
+            mAttachSessions =
             new ConcurrentHashMap<>();
     // DiscoverySession will be initialized after publish or subscribe
-    private final ConcurrentHashMap<String, DiscoverySession> mDiscoverySessions =
+    private final ConcurrentHashMap<String, DiscoverySession>
+            mDiscoverySessions =
             new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Integer, PeerHandle> mPeerHandles = new ConcurrentHashMap<>();
     private final EventCache eventCache = EventCache.getInstance();
@@ -87,8 +89,11 @@ public class WifiAwareManagerSnippet implements Snippet {
 
     public WifiAwareManagerSnippet() throws WifiAwareManagerSnippetException {
         mContext = ApplicationProvider.getApplicationContext();
-        PermissionUtils.checkPermissions(mContext, Manifest.permission.ACCESS_WIFI_STATE,
-                Manifest.permission.CHANGE_WIFI_STATE, Manifest.permission.ACCESS_FINE_LOCATION,
+        PermissionUtils.checkPermissions(
+                mContext,
+                Manifest.permission.ACCESS_WIFI_STATE,
+                Manifest.permission.CHANGE_WIFI_STATE,
+                Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.NEARBY_WIFI_DEVICES
         );
         mWifiAwareManager = mContext.getSystemService(WifiAwareManager.class);
@@ -152,8 +157,10 @@ public class WifiAwareManagerSnippet implements Snippet {
             }
         };
         if (identityCb) {
-            mWifiAwareManager.attach(attachCallback,
-                    new AwareIdentityChangeListenerPostsEvents(eventCache, callbackId), mHandler
+            mWifiAwareManager.attach(
+                    attachCallback,
+                    new AwareIdentityChangeListenerPostsEvents(eventCache, callbackId),
+                    mHandler
             );
         } else {
             mWifiAwareManager.attach(attachCallback, mHandler);
@@ -215,9 +222,12 @@ public class WifiAwareManagerSnippet implements Snippet {
         @Override
         public void onReceive(Context c, Intent intent) {
             boolean isAvailable = mWifiAwareManager.isAvailable();
-            SnippetEvent event = new SnippetEvent(callbackId,
-                    "WifiAwareState" + (isAvailable ? "Available" : "NotAvailable")
-            );
+            SnippetEvent
+                    event =
+                    new SnippetEvent(
+                            callbackId,
+                            "WifiAwareState" + (isAvailable ? "Available" : "NotAvailable")
+                    );
             eventCache.postEvent(event);
         }
     }
@@ -357,7 +367,9 @@ public class WifiAwareManagerSnippet implements Snippet {
 
         @Override
         public void onServiceDiscoveredWithinRange(
-                PeerHandle peerHandle, byte[] serviceSpecificInfo, List<byte[]> matchFilter,
+                PeerHandle peerHandle,
+                byte[] serviceSpecificInfo,
+                List<byte[]> matchFilter,
                 int distanceMm
         ) {
             mPeerHandles.put(peerHandle.hashCode(), peerHandle);
@@ -449,15 +461,6 @@ public class WifiAwareManagerSnippet implements Snippet {
             event.getData().putInt("peerId", peerHandle.hashCode());
             EventCache.getInstance().postEvent(event);
         }
-
-        @Override
-        public void onServiceLost(PeerHandle peerHandle, int reason) {
-            SnippetEvent event = new SnippetEvent(mCallBackId, "WifiAwareSessionOnServiceLost");
-            event.getData().putString("discoverySessionId", mCallBackId);
-            event.getData().putInt("peerId", peerHandle.hashCode());
-            event.getData().putInt("lostReason", reason);
-            EventCache.getInstance().postEvent(event);
-        }
     }
 
     private WifiAwareSession getWifiAwareSession(String sessionId)
@@ -491,7 +494,8 @@ public class WifiAwareManagerSnippet implements Snippet {
     ) throws JSONException, WifiAwareManagerSnippetException {
         WifiAwareSession session = getWifiAwareSession(sessionId);
         Log.v("Creating a new Aware subscribe session with config: " + subscribeConfig.toString());
-        WifiAwareDiscoverySessionCallback myDiscoverySessionCallback =
+        WifiAwareDiscoverySessionCallback
+                myDiscoverySessionCallback =
                 new WifiAwareDiscoverySessionCallback(callbackId);
         session.subscribe(subscribeConfig, myDiscoverySessionCallback, mHandler);
     }
@@ -512,7 +516,8 @@ public class WifiAwareManagerSnippet implements Snippet {
             throws JSONException, WifiAwareManagerSnippetException {
         WifiAwareSession session = getWifiAwareSession(sessionId);
         Log.v("Creating a new Aware publish session with config: " + publishConfig.toString());
-        WifiAwareDiscoverySessionCallback myDiscoverySessionCallback =
+        WifiAwareDiscoverySessionCallback
+                myDiscoverySessionCallback =
                 new WifiAwareDiscoverySessionCallback(callbackId);
         session.publish(publishConfig, myDiscoverySessionCallback, mHandler);
     }
@@ -522,7 +527,10 @@ public class WifiAwareManagerSnippet implements Snippet {
         if (handle == null) {
             throw new WifiAwareManagerSnippetException(
                     "GetPeerHandler failed. Please call publish or subscribe method, error "
-                            + "peerId: " + peerId + ", mPeerHandles: " + mPeerHandles);
+                            + "peerId: "
+                            + peerId
+                            + ", mPeerHandles: "
+                            + mPeerHandles);
         }
         return handle;
     }
@@ -533,8 +541,10 @@ public class WifiAwareManagerSnippet implements Snippet {
         if (session == null) {
             throw new WifiAwareManagerSnippetException(
                     "GetDiscoverySession failed. Please call publish or subscribe method, "
-                            + "error discoverySessionId: " + discoverySessionId
-                            + ", mDiscoverySessions: " + mDiscoverySessions);
+                            + "error discoverySessionId: "
+                            + discoverySessionId
+                            + ", mDiscoverySessions: "
+                            + mDiscoverySessions);
         }
         return session;
 
@@ -620,7 +630,9 @@ public class WifiAwareManagerSnippet implements Snippet {
                     + "request"
     )
     public String wifiAwareCreateNetworkSpecifier(
-            String discoverySessionId, int peerId, boolean isAcceptAnyPeer,
+            String discoverySessionId,
+            int peerId,
+            boolean isAcceptAnyPeer,
             @RpcOptional JSONObject jsonObject
     ) throws JSONException, WifiAwareManagerSnippetException {
         DiscoverySession session = getDiscoverySession(discoverySessionId);
@@ -631,7 +643,8 @@ public class WifiAwareManagerSnippet implements Snippet {
         } else {
             builder = new WifiAwareNetworkSpecifier.Builder(session, handle);
         }
-        WifiAwareNetworkSpecifier specifier =
+        WifiAwareNetworkSpecifier
+                specifier =
                 WifiAwareJsonDeserializer.jsonToNetworkSpecifier(jsonObject, builder);
         return SerializationUtil.parcelableToString(specifier);
     }
@@ -666,7 +679,8 @@ public class WifiAwareManagerSnippet implements Snippet {
         DiscoverySession session = getDiscoverySession(sessionId);
         if (session == null) {
             throw new IllegalStateException(
-                    "Calling wifiAwareUpdatePublish before session (session ID " + sessionId
+                    "Calling wifiAwareUpdatePublish before session (session ID "
+                            + sessionId
                             + ") is ready");
         }
         if (!(session instanceof PublishDiscoverySession)) {
@@ -695,7 +709,8 @@ public class WifiAwareManagerSnippet implements Snippet {
         DiscoverySession session = getDiscoverySession(sessionId);
         if (session == null) {
             throw new IllegalStateException(
-                    "Calling wifiAwareUpdateSubscribe before session (session ID " + sessionId
+                    "Calling wifiAwareUpdateSubscribe before session (session ID "
+                            + sessionId
                             + ") is ready");
         }
         if (!(session instanceof SubscribeDiscoverySession)) {
@@ -706,6 +721,20 @@ public class WifiAwareManagerSnippet implements Snippet {
                 + subscribeConfig.toString());
         ((SubscribeDiscoverySession) session).updateSubscribe(subscribeConfig);
 
+    }
+
+    /**
+     * The support of this function depends on the chip used. For example, Pixel5 Pixel7a will
+     * return true
+     * Return the device support for setting a channel requirement in a data-path request. If
+     * true the channel set by WifiAwareNetworkSpecifier. Builder. setChannelFrequencyMhz(int,
+     * boolean) will be honored, otherwise it will be ignored.
+     * Returns:
+     * True is the device support set channel on data-path request, false otherwise.
+     */
+    @Rpc(description = "The support of this function depends on the chip used")
+    public boolean wifiAwareIsSetChannelOnDataPathSupported() {
+        return mWifiAwareManager.isSetChannelOnDataPathSupported();
     }
 
 }

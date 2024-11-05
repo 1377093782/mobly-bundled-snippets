@@ -21,6 +21,7 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.net.TransportInfo;
+import android.net.wifi.aware.WifiAwareChannelInfo;
 import android.net.wifi.aware.WifiAwareNetworkInfo;
 
 import androidx.annotation.NonNull;
@@ -42,6 +43,7 @@ import java.net.Inet6Address;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ConnectivityManagerSnippet implements Snippet {
@@ -49,6 +51,7 @@ public class ConnectivityManagerSnippet implements Snippet {
     private static final String EVENT_KEY_NETWORK = "network";
     private static final String EVENT_KEY_NETWORK_CAP = "networkCapabilities";
     private static final String EVENT_KEY_TRANSPORT_INFO_CLASS = "transportInfoClassName";
+    private static final String EVENT_KEY_TRANSPORT_INFO_CHANNEL_IN_MHZ = "channelInMhz";
     private static final int CLOSE_SOCKET_TIMEOUT = 15 * 1000;
     private static final int ACCEPT_TIMEOUT = 30 * 1000;
     private static final int SOCKET_SO_TIMEOUT = 30 * 1000;
@@ -57,12 +60,15 @@ public class ConnectivityManagerSnippet implements Snippet {
     private final Context mContext;
     private final ConnectivityManager mConnectivityManager;
 
-    private final ConcurrentHashMap<String, ServerSocket> mServerSockets =
+    private final ConcurrentHashMap<String, ServerSocket>
+            mServerSockets =
             new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, NetworkCallback> mNetworkCallBacks =
+    private final ConcurrentHashMap<String, NetworkCallback>
+            mNetworkCallBacks =
             new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Socket> mSockets = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, OutputStream> mOutputStreams =
+    private final ConcurrentHashMap<String, OutputStream>
+            mOutputStreams =
             new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, InputStream> mInputStreams = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Thread> mSocketThreads = new ConcurrentHashMap<>();
@@ -81,8 +87,8 @@ public class ConnectivityManagerSnippet implements Snippet {
         mContext = ApplicationProvider.getApplicationContext();
         mConnectivityManager = mContext.getSystemService(ConnectivityManager.class);
         if (mConnectivityManager == null) {
-            throw new ConnectivityManagerSnippetException(
-                    "ConnectivityManager not " + "available.");
+            throw new ConnectivityManagerSnippetException("ConnectivityManager not "
+                    + "available.");
         }
     }
 
@@ -106,8 +112,9 @@ public class ConnectivityManagerSnippet implements Snippet {
         }
 
         @Override
-        public void onCapabilitiesChanged(@NonNull Network network,
-                                          @NonNull NetworkCapabilities networkCapabilities) {
+        public void onCapabilitiesChanged(
+                @NonNull Network network, @NonNull NetworkCapabilities networkCapabilities
+        ) {
             SnippetEvent event = new SnippetEvent(mCallBackId, "NetworkCallback");
             event.getData().putString(EVENT_KEY_CB_NAME, "onCapabilitiesChanged");
             event.getData().putParcelable(EVENT_KEY_NETWORK, network);
@@ -118,8 +125,23 @@ public class ConnectivityManagerSnippet implements Snippet {
             String transportInfoClassName = "";
             if (transportInfo != null) {
                 transportInfoClassName = transportInfo.getClass().getName();
+                event.getData().putString(EVENT_KEY_TRANSPORT_INFO_CLASS, transportInfoClassName);
             }
-            event.getData().putString(EVENT_KEY_TRANSPORT_INFO_CLASS, transportInfoClassName);
+            if (networkCapabilities.getTransportInfo() instanceof WifiAwareNetworkInfo) {
+                WifiAwareNetworkInfo
+                        newWorkInfo =
+                        (WifiAwareNetworkInfo) networkCapabilities.getTransportInfo();
+                List<WifiAwareChannelInfo> channelInfoList = newWorkInfo.getChannelInfoList();
+                if (!channelInfoList.isEmpty()) {
+                    WifiAwareChannelInfo wifiAwareChannelInfo = channelInfoList.get(0);
+                    event.getData().putInt(
+                            EVENT_KEY_TRANSPORT_INFO_CHANNEL_IN_MHZ,
+                            wifiAwareChannelInfo.getChannelFrequencyMhz()
+                    );
+                }
+
+            }
+
             EventCache.getInstance().postEvent(event);
         }
     }
@@ -138,8 +160,12 @@ public class ConnectivityManagerSnippet implements Snippet {
      *                                request will expire if no suitable network is found.
      */
     @AsyncRpc(description = "Request a network.")
-    public void connectivityRequestNetwork(String callBackId, String requestNetWorkId,
-                                           NetworkRequest request, int requestNetworkTimeoutMs) {
+    public void connectivityRequestNetwork(
+            String callBackId,
+            String requestNetWorkId,
+            NetworkRequest request,
+            int requestNetworkTimeoutMs
+    ) {
         Log.v("Requesting network with request: " + request.toString());
         NetworkCallback callback = new NetworkCallback(callBackId);
         mNetworkCallBacks.put(requestNetWorkId, callback);
@@ -185,8 +211,8 @@ public class ConnectivityManagerSnippet implements Snippet {
         // A call to accept() for this ServerSocket will block for only this amount of time.
         serverSocket.setSoTimeout(ACCEPT_TIMEOUT);
         if (mSocketThreads.get(callbackId) != null) {
-            throw new ConnectivityManagerSnippetException(
-                    "Server socket thread is already running.");
+            throw new ConnectivityManagerSnippetException("Server socket thread is already "
+                    + "running.");
         }
         Thread socketThread = new Thread(() -> {
             try {
@@ -395,11 +421,14 @@ public class ConnectivityManagerSnippet implements Snippet {
         if (socket != null) {
             throw new ConnectivityManagerSnippetException("Socket is already created"
                     + ".Please call connectivityCloseSocket(String sessionId) or "
-                    + "connectivityStopAcceptThread" + "(String sessionId) " + "to release first.");
+                    + "connectivityStopAcceptThread"
+                    + "(String sessionId) "
+                    + "to release first.");
         }
 
         checkNetworkCapabilities(networkCapabilities);
-        WifiAwareNetworkInfo peerAwareInfo =
+        WifiAwareNetworkInfo
+                peerAwareInfo =
                 (WifiAwareNetworkInfo) networkCapabilities.getTransportInfo();
         if (peerAwareInfo == null) {
             throw new ConnectivityManagerSnippetException("PeerAwareInfo is null.");
@@ -415,8 +444,8 @@ public class ConnectivityManagerSnippet implements Snippet {
 
             int transportProtocol = peerAwareInfo.getTransportProtocol();
             if (transportProtocol != TRANSPORT_PROTOCOL_TCP) {
-                throw new ConnectivityManagerSnippetException(
-                        "Only support TCP transport protocol.");
+                throw new ConnectivityManagerSnippetException("Only support TCP transport "
+                        + "protocol.");
             }
         }
 
