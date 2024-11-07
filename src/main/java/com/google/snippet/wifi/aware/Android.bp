@@ -54,5 +54,4 @@ android_test {
         "mobly-snippet-lib",
     ],
     min_sdk_version: "30",
-    target_sdk_version: "35",
 }
