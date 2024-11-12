@@ -808,16 +808,5 @@ public class WifiAwareManagerSnippet implements Snippet {
         }
     }
 
-    /**
-     * Return whether this device supports setting a channel requirement in a data-path request.
-     */
-    @Rpc(
-            description = "Return whether this device supports setting a channel requirement in a "
-                + "data-path request."
-    )
-    public boolean wifiAwareIsSetChannelOnDataPathSupported() {
-        return mWifiAwareManager.isSetChannelOnDataPathSupported();
-    }
-
 }
 
