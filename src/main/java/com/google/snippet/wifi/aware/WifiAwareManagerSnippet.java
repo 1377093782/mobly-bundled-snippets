@@ -106,6 +106,14 @@ public class WifiAwareManagerSnippet implements Snippet {
     }
 
     /**
+     * Returns whether Wi-Fi Aware is supported.
+     */
+    @Rpc(description = "Is Wi-Fi Aware supported.")
+    public boolean wifiAwareIstSupported() {
+        return mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_AWARE);
+    }
+
+    /**
      * Returns whether Wi-Fi RTT is supported.
      */
     @Rpc(description = "Is Wi-Fi RTT supported.")
