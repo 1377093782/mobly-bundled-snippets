@@ -28,14 +28,13 @@ import java.util.Iterator;
 
 /**
  * The class for converting Wi-Fi p2p classes to bundles.
- * <p>
+ *
  * This is for passing them to Mobly snippet events.
  */
 public class BundleUtils {
 
     /**
      * Convert a WifiP2pDevice obeject to a bundle.
-     *
      * @param device The object to be converted.
      * @return The bundle.
      */
@@ -52,7 +51,6 @@ public class BundleUtils {
 
     /**
      * Convert a WifiP2pDeviceList obeject to a bundle array.
-     *
      * @param deviceList The object to be converted.
      * @return The bundle array.
      */
@@ -68,7 +66,6 @@ public class BundleUtils {
 
     /**
      * Convert a WifiP2pInfo object to a bundle.
-     *
      * @param info The object to be converted.
      * @return The bundle.
      */
@@ -89,7 +86,6 @@ public class BundleUtils {
 
     /**
      * Convert a WifiP2pGroup object to a bundle.
-     *
      * @param group The object to be converted.
      * @return The bundle.
      */
@@ -110,8 +106,7 @@ public class BundleUtils {
 
     /**
      * Convert a WifiP2pGroupList object to a bundle array.
-     *
-     * @param groupList The ojbect to be converted
+     * @param groupList The object to be converted
      * @return The bundle array.
      */
     public static ArrayList<Bundle> fromWifiP2pGroupList(WifiP2pGroupList groupList) {

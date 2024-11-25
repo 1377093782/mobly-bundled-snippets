@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,9 +22,7 @@ import android.net.wifi.p2p.WifiP2pConfig;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-/**
- * Deserializes JSONObject into data objects defined in Android API.
- */
+/** Deserializes JSONObject into data objects defined in Android API. */
 public class JsonDeserializer {
     private static final String PERSISTENT_MODE = "persistent_mode";
     private static final String DEVICE_ADDRESS = "device_address";
@@ -35,12 +33,7 @@ public class JsonDeserializer {
     private static final String NETWORK_NAME = "network_name";
     private static final String PASSPHRASE = "passphrase";
 
-    private JsonDeserializer() {
-    }
-
-    /**
-     * Converts Python dict to android.net.wifi.p2p.WifiP2pConfig.
-     */
+    /** Converts Python dict to android.net.wifi.p2p.WifiP2pConfig. */
     public static WifiP2pConfig jsonToWifiP2pConfig(JSONObject jsonObject) throws JSONException {
         if (jsonObject.has("wps_setup")) {
             // Create WifiP2pConfig directly.
