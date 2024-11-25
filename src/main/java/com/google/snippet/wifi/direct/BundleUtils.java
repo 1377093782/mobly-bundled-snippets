@@ -18,6 +18,7 @@ package com.google.snippet.wifi.direct;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pGroup;
+import android.net.wifi.p2p.WifiP2pGroupList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.os.Bundle;
 
@@ -27,13 +28,14 @@ import java.util.Iterator;
 
 /**
  * The class for converting Wi-Fi p2p classes to bundles.
- *
+ * <p>
  * This is for passing them to Mobly snippet events.
  */
 public class BundleUtils {
 
     /**
      * Convert a WifiP2pDevice obeject to a bundle.
+     *
      * @param device The object to be converted.
      * @return The bundle.
      */
@@ -50,6 +52,7 @@ public class BundleUtils {
 
     /**
      * Convert a WifiP2pDeviceList obeject to a bundle array.
+     *
      * @param deviceList The object to be converted.
      * @return The bundle array.
      */
@@ -65,6 +68,7 @@ public class BundleUtils {
 
     /**
      * Convert a WifiP2pInfo object to a bundle.
+     *
      * @param info The object to be converted.
      * @return The bundle.
      */
@@ -85,6 +89,7 @@ public class BundleUtils {
 
     /**
      * Convert a WifiP2pGroup object to a bundle.
+     *
      * @param group The object to be converted.
      * @return The bundle.
      */
@@ -93,11 +98,29 @@ public class BundleUtils {
             return null;
         }
         Bundle bundle = new Bundle();
-        bundle.putBoolean("isGroupOwner", group.isGroupOwner());
-        bundle.putString("passphrase", group.getPassphrase());
-        bundle.putString("networkName", group.getNetworkName());
-        bundle.putInt("networkId", group.getNetworkId());
         bundle.putInt("frequency", group.getFrequency());
+        bundle.putString("interface", group.getInterface());
+        bundle.putInt("networkId", group.getNetworkId());
+        bundle.putString("networkName", group.getNetworkName());
+        bundle.putBundle("owner", fromWifiP2pDevice(group.getOwner()));
+        bundle.putString("passphrase", group.getPassphrase());
+        bundle.putBoolean("isGroupOwner", group.isGroupOwner());
         return bundle;
+    }
+
+    /**
+     * Convert a WifiP2pGroupList object to a bundle array.
+     *
+     * @param groupList The ojbect to be converted
+     * @return The bundle array.
+     */
+    public static ArrayList<Bundle> fromWifiP2pGroupList(WifiP2pGroupList groupList) {
+        Collection<WifiP2pGroup> groups = groupList.getGroupList();
+        ArrayList<Bundle> bundles = new ArrayList<Bundle>();
+        Iterator<WifiP2pGroup> i = groups.iterator();
+        while (i.hasNext()) {
+            bundles.add(BundleUtils.fromWifiP2pGroup(i.next()));
+        }
+        return bundles;
     }
 }
