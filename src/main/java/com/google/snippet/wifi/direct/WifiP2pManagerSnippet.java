@@ -32,6 +32,8 @@ import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.widget.Button;
+import android.widget.EditText;
 
 import androidx.annotation.NonNull;
 import androidx.test.core.app.ApplicationProvider;
@@ -52,6 +54,7 @@ import com.google.android.mobly.snippet.util.Log;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
@@ -290,6 +293,103 @@ public class WifiP2pManagerSnippet implements Snippet {
             mStateChangedReceiver = null;
         }
     }
+
+    /**
+     * Generates a WPS PIN for use in P2P connection.
+     *
+     * @return The generated PIN as a String.
+     */
+    @Rpc(description = "Generate a WPS PIN for P2P connection.")
+    public String wifiP2pGetPinCode() throws Throwable {
+        // Wait for the 'Invitation sent' dialog to appear
+        if (!mUiDevice.wait(Until.hasObject(By.text("Invitation sent")), 30000)) {
+            throw new WifiP2pManagerException(
+                    "Invitation sent dialog did not appear within timeout.");
+        }
+
+        // Find the 'PIN:' label
+        UiObject2 pinLabel = mUiDevice.findObject(By.text("PIN:"));
+        if (pinLabel == null) {
+            throw new WifiP2pManagerException("PIN label not found.");
+        }
+
+        // Get the sibling UI element that contains the PIN code
+        UiObject2 pinValue = pinLabel.getParent()
+                .findObject(By.res("com.google.android.wifi.resources:id/value"));
+        if (pinValue == null) {
+            // If resource ID doesn't match, try to find the next TextView sibling
+            List<UiObject2> children = pinLabel.getParent().getChildren();
+            int index = children.indexOf(pinLabel);
+            if (index >= 0 && index + 1 < children.size()) {
+                UiObject2 nextSibling = children.get(index + 1);
+                if ("android.widget.TextView".equals(nextSibling.getClassName())) {
+                    pinValue = nextSibling;
+                }
+            }
+            if (pinValue == null) {
+                throw new WifiP2pManagerException("PIN value not found.");
+            }
+        }
+
+        String pinCode = pinValue.getText();
+        if (pinCode == null || pinCode.length() != 8) {
+            throw new WifiP2pManagerException("Invalid PIN code retrieved.");
+        }
+
+        Log.d("Retrieved PIN code: " + pinCode);
+
+        // Click 'OK' to close the PIN code alert
+        UiObject2 okButton = mUiDevice.findObject(By.text("OK").clazz(Button.class));
+        if (okButton != null) {
+            okButton.click();
+            Log.d("Clicked 'OK' to close the PIN code alert.");
+        } else {
+            throw new WifiP2pManagerException("OK button not found to close the PIN code alert.");
+        }
+        Log.d("Generated WPS PIN: " + pinCode);
+        return pinCode;
+    }
+
+    /**
+     * Enters the given WPS PIN to accept a P2P connection invitation.
+     *
+     * @param pinCode The WPS PIN to enter.
+     */
+    @Rpc(description = "Enter the WPS PIN to accept a P2P connection invitation.")
+    public void wifiP2pEnterPin(String pinCode) throws WifiP2pManagerException {
+        // Wait for the 'Invitation to connect' dialog to appear
+        if (!mUiDevice.wait(Until.hasObject(By.textContains("Invitation to connect")), 30000)) {
+            throw new WifiP2pManagerException(
+                    "Invitation to connect dialog did not appear within timeout.");
+        }
+
+        // Find the PIN entry field
+        UiObject2 pinEntryField = mUiDevice.findObject(By.focused(true));
+        if (pinEntryField == null) {
+            pinEntryField = mUiDevice.findObject(By.clazz(EditText.class));
+            if (pinEntryField == null) {
+                throw new WifiP2pManagerException("PIN entry field not found.");
+            }
+        }
+
+        // Enter the PIN code
+        pinEntryField.setText(pinCode);
+        Log.d("Entered PIN code: " + pinCode);
+
+        // Find and click the 'ACCEPT' or 'OK' button
+        Pattern acceptPattern = Pattern.compile(
+                "(ACCEPT|OK|Accept|连接|确定)", Pattern.CASE_INSENSITIVE);
+        UiObject2 acceptButton = mUiDevice.findObject(By.clazz(Button.class).text(acceptPattern));
+        if (acceptButton == null) {
+            acceptButton = mUiDevice.findObject(By.clickable(true).text(acceptPattern));
+            if (acceptButton == null) {
+                throw new WifiP2pManagerException("Accept button not found.");
+            }
+        }
+        acceptButton.click();
+        Log.d("Clicked 'ACCEPT' or 'OK' to accept the connection.");
+    }
+
 
     @Override
     public void shutdown() {
