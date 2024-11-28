@@ -242,15 +242,19 @@ public class WifiP2pManagerSnippet implements Snippet {
 
     /**
      * Generates a WPS PIN for use in P2P connection.
-     *
+     * @param deviceName The device name to accept the connection invitation.
      * @return The generated PIN as a String.
      */
     @Rpc(description = "Get the PIN code for Wi-Fi p2p connection.")
-    public String wifiP2pGetPinCode() throws Throwable {
+    public String wifiP2pGetPinCode(String deviceName) throws Throwable {
         // Wait for the 'Invitation sent' dialog to appear
         if (!mUiDevice.wait(Until.hasObject(By.text("Invitation sent")), 30000)) {
             throw new WifiP2pManagerException(
                     "Invitation sent dialog did not appear within timeout.");
+        }
+        if (!mUiDevice.wait(Until.hasObject(By.text(deviceName)), 5000)) {
+            throw new WifiP2pManagerException(
+                    "The connect invitation is not triggered by expected peer device.");
         }
         // Find the 'PIN:' label
         UiObject2 pinLabel = mUiDevice.findObject(By.text("PIN:"));
@@ -277,13 +281,18 @@ public class WifiP2pManagerSnippet implements Snippet {
      * Enters the given WPS PIN to accept a P2P connection invitation.
      *
      * @param pinCode The WPS PIN to enter.
+     * @param deviceName The device name to accept the connection invitation.
      */
     @Rpc(description = "Enter the WPS PIN to accept a P2P connection invitation.")
-    public void wifiP2pEnterPin(String pinCode) throws WifiP2pManagerException {
+    public void wifiP2pEnterPin(String pinCode, String deviceName) throws WifiP2pManagerException {
         // Wait for the 'Invitation to connect' dialog to appear
         if (!mUiDevice.wait(Until.hasObject(By.textContains("Invitation to connect")), 30000)) {
             throw new WifiP2pManagerException(
                     "Invitation to connect dialog did not appear within timeout.");
+        }
+        if (!mUiDevice.wait(Until.hasObject(By.text(deviceName)), 5000)) {
+            throw new WifiP2pManagerException(
+                    "The connect invitation is not triggered by expected peer device.");
         }
         // Find the PIN entry field
         UiObject2 pinEntryField = mUiDevice.findObject(By.focused(true));
