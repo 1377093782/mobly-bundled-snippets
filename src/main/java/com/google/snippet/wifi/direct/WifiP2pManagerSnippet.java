@@ -30,6 +30,8 @@ import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pGroupList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.net.wifi.p2p.nsd.WifiP2pServiceInfo;
+import android.net.wifi.p2p.nsd.WifiP2pServiceRequest;
 import android.os.Build;
 import android.os.Bundle;
 import android.widget.Button;
@@ -49,10 +51,14 @@ import com.google.android.mobly.snippet.rpc.AsyncRpc;
 import com.google.android.mobly.snippet.rpc.Rpc;
 import com.google.android.mobly.snippet.rpc.RpcOptional;
 import com.google.android.mobly.snippet.util.Log;
+import com.google.snippet.wifi.direct.utils.DnsSdResponseListenerTest;
+import com.google.snippet.wifi.direct.utils.DnsSdTxtRecordListenerTest;
+import com.google.snippet.wifi.direct.utils.UPnPServiceResponseListenerTest;
 
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
@@ -156,6 +162,63 @@ public class WifiP2pManagerSnippet implements Snippet {
     }
 
     /**
+     * Check if the service request is null.
+     */
+    private void checkServiceRequest(WifiP2pServiceRequest servRequest) throws Throwable {
+        if (servRequest == null) {
+            throw new WifiP2pManagerException("servRequest info is null");
+        }
+    }
+
+    /**
+     * Add service request to the device. {@link
+     * WifiP2pManager#addServiceRequest(WifiP2pManager.Channel, WifiP2pServiceRequest,
+     * WifiP2pManager.ActionListener)}
+     */
+    @AsyncRpc(description = "Get p2p service request")
+    public void p2pAddServiceRequest(
+            String callbackId, @RpcOptional JSONObject wifiP2pServiceRequest
+    ) throws Throwable {
+        checkLocationAndNearbyWifiPermissions();
+        checkChannel();
+        WifiP2pServiceRequest servRequest = JsonDeserializer.jsonToWifiP2pServiceRequest(
+                wifiP2pServiceRequest);
+        checkServiceRequest(servRequest);
+        mP2pManager.addServiceRequest(mChannel, servRequest, new ActionListener(callbackId));
+        verifyActionListenerSucceed(callbackId);
+    }
+
+    /**
+     * Method to set UPnP service response listener
+     */
+    @AsyncRpc(description = "Set UPnP service response listener.")
+    public void setUpnpServiceResponseListener(String callbackId, String targetAddress)
+            throws Throwable {
+        checkLocationAndNearbyWifiPermissions();
+        checkChannel();
+        UPnPServiceResponseListenerTest upnpListener = new UPnPServiceResponseListenerTest(
+                callbackId, targetAddress);
+        mP2pManager.setUpnpServiceResponseListener(mChannel, upnpListener);
+    }
+
+    /**
+     * Method to set DNS-SD service response listeners
+     */
+    @AsyncRpc(description = "Set DNS-SD service response listeners.")
+    public void setDnsSdResponseListeners(String callbackId, String targetAddress)
+            throws Throwable {
+        checkLocationAndNearbyWifiPermissions();
+        checkChannel();
+        DnsSdResponseListenerTest dnsListener = new DnsSdResponseListenerTest(
+                callbackId, targetAddress);
+        DnsSdTxtRecordListenerTest txtListener = new DnsSdTxtRecordListenerTest(
+                callbackId, targetAddress);
+
+        mP2pManager.setDnsSdResponseListeners(mChannel, dnsListener, txtListener);
+    }
+
+
+    /**
      * Cancel any ongoing p2p group negotiation.
      *
      * @return The event posted by the callback methods of {@link ActionListener}.
@@ -181,6 +244,39 @@ public class WifiP2pManagerSnippet implements Snippet {
         return waitActionListenerResult(callbackId);
     }
 
+    private void checkLocationAndNearbyWifiPermissions() {
+        checkPermissions(mContext, Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.NEARBY_WIFI_DEVICES
+        );
+    }
+
+    /**
+     * Check if the service info is null.
+     */
+    private void checkServiceInfo(WifiP2pServiceInfo servInfo) throws Throwable {
+        if (servInfo == null) {
+            throw new WifiP2pManagerException("Service info is null");
+        }
+    }
+
+
+    /**
+     * Add local service to the device.
+     *
+     * @param wifiServiceParams Look at constants.py -> WifiP2pServiceType
+     */
+    @AsyncRpc(description = "Add local service")
+    public void wifiP2pAddLocalService(String callbackId, @RpcOptional JSONObject wifiServiceParams)
+            throws Throwable {
+        checkLocationAndNearbyWifiPermissions();
+        checkChannel();
+        WifiP2pServiceInfo servInfo = JsonDeserializer.jsonToWifiP2pServiceInfo(wifiServiceParams);
+        checkServiceInfo(servInfo);
+        mP2pManager.addLocalService(mChannel, servInfo, new ActionListener(callbackId));
+        verifyActionListenerSucceed(callbackId);
+
+    }
+
     /**
      * Create a p2p group with the current device as the group owner.
      *
@@ -189,6 +285,7 @@ public class WifiP2pManagerSnippet implements Snippet {
     @AsyncRpc(description = "Create a p2p group with the current device as the group owner.")
     public void wifiP2pCreateGroup(String callbackId, @RpcOptional JSONObject wifiP2pConfig)
             throws Throwable {
+        checkLocationAndNearbyWifiPermissions();
         checkChannel();
         ActionListener actionListener = new ActionListener(callbackId);
         if (wifiP2pConfig == null) {
@@ -254,7 +351,7 @@ public class WifiP2pManagerSnippet implements Snippet {
         }
         if (!mUiDevice.wait(Until.hasObject(By.text(deviceName)), 5000)) {
             throw new WifiP2pManagerException(
-                    "The connect invitation is not triggered by expected peer device.");
+                    "The connect invitation is " + "not triggered by expected peer device.");
         }
         // Find the 'PIN:' label
         UiObject2 pinLabel = mUiDevice.findObject(By.text("PIN:"));
@@ -541,10 +638,10 @@ public class WifiP2pManagerSnippet implements Snippet {
     private void verifyActionListenerSucceed(String callbackId) throws Throwable {
         Bundle eventData = waitActionListenerResult(callbackId);
         String result = eventData.getString(EVENT_KEY_CALLBACK_NAME);
-        if (result == ACTION_LISTENER_ON_SUCCESS) {
+        if (Objects.equals(result, ACTION_LISTENER_ON_SUCCESS)) {
             return;
         }
-        if (result == ACTION_LISTENER_ON_FAILURE) {
+        if (Objects.equals(result, ACTION_LISTENER_ON_FAILURE)) {
             throw new WifiP2pManagerException(
                     "Action failed with reason code: " + eventData.getInt(EVENT_KEY_REASON)
             );
