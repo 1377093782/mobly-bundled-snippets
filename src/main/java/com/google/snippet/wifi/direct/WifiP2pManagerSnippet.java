@@ -71,6 +71,7 @@ public class WifiP2pManagerSnippet implements Snippet {
     private static final int TIMEOUT_SHORT_MS = 10000;
     private static final String EVENT_KEY_CALLBACK_NAME = "callbackName";
     private static final String EVENT_KEY_REASON = "reason";
+    private static final String EVENT_KEY_REASON_MESSAGE = "errorMessage";
     private static final String EVENT_KEY_P2P_DEVICE = "p2pDevice";
     private static final String EVENT_KEY_P2P_INFO = "p2pInfo";
     private static final String EVENT_KEY_P2P_GROUP = "p2pGroup";
@@ -151,14 +152,12 @@ public class WifiP2pManagerSnippet implements Snippet {
      *
      * @throws Throwable If this failed to initiate discovery, or the action timed out.
      */
-    @Rpc(
+    @AsyncRpc(
             description = "Initiate peer discovery. A discovery process involves scanning for "
                     + "available Wi-Fi peers for the purpose of establishing a connection.")
-    public void wifiP2pDiscoverPeers() throws Throwable {
+    public void wifiP2pDiscoverPeers(String callbackId) throws Throwable {
         checkChannel();
-        String callbackId = UUID.randomUUID().toString();
-        mP2pManager.discoverPeers(mChannel, new ActionListener(callbackId));
-        verifyActionListenerSucceed(callbackId);
+        mP2pManager.discoverPeers(mChannel, new WifiP2pActionListener(callbackId));
     }
 
     /**
@@ -272,10 +271,10 @@ public class WifiP2pManagerSnippet implements Snippet {
         checkChannel();
         WifiP2pServiceInfo servInfo = JsonDeserializer.jsonToWifiP2pServiceInfo(wifiServiceParams);
         checkServiceInfo(servInfo);
-        mP2pManager.addLocalService(mChannel, servInfo, new ActionListener(callbackId));
-        verifyActionListenerSucceed(callbackId);
+        mP2pManager.addLocalService(mChannel, servInfo, new WifiP2pActionListener(callbackId));
 
     }
+
 
     /**
      * Create a p2p group with the current device as the group owner.
@@ -287,14 +286,13 @@ public class WifiP2pManagerSnippet implements Snippet {
             throws Throwable {
         checkLocationAndNearbyWifiPermissions();
         checkChannel();
-        ActionListener actionListener = new ActionListener(callbackId);
+        WifiP2pActionListener actionListener = new WifiP2pActionListener(callbackId);
         if (wifiP2pConfig == null) {
             mP2pManager.createGroup(mChannel, actionListener);
         } else {
             mP2pManager.createGroup(
                     mChannel, JsonDeserializer.jsonToWifiP2pConfig(wifiP2pConfig), actionListener);
         }
-        verifyActionListenerSucceed(callbackId);
     }
 
     /**
@@ -518,6 +516,67 @@ public class WifiP2pManagerSnippet implements Snippet {
                             EVENT_KEY_P2P_GROUP, BundleUtils.fromWifiP2pGroup(p2pGroup));
                     break;
             }
+            EventCache.getInstance().postEvent(event);
+        }
+    }
+
+    /**
+     * Gets the current method name.
+     *
+     * @return the current method name
+     */
+    private static String getCurrentMethodName() {
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+
+        for (int i = 0; i < stackTrace.length; i++) {
+            Log.d(i + "getCurrentMethodName: " + stackTrace[i].getMethodName());
+        }
+        // This number can be obtained by logging the i on the
+        int methodNameIndex = 5;
+        return stackTrace[methodNameIndex].getMethodName(); // method name form debug
+    }
+
+    private static class WifiP2pActionListener implements WifiP2pManager.ActionListener {
+        private final String actionName;
+        private SnippetEvent event = null;
+
+        WifiP2pActionListener(String callbackId) {
+            this.actionName = getCurrentMethodName();
+            event = new SnippetEvent(callbackId, actionName);
+        }
+
+        @Override
+        public void onSuccess() {
+            event.getData().putString(EVENT_KEY_CALLBACK_NAME, ACTION_LISTENER_ON_SUCCESS);
+            EventCache.getInstance().postEvent(event);
+            Log.d("WifiP2pActionListener:" + this.actionName + "onSuccess");
+        }
+
+        @Override
+        public void onFailure(int reason) {
+            String errorMessage;
+            switch (reason) {
+                case WifiP2pManager.BUSY:
+                    errorMessage = "BUSY";
+                    break;
+                case WifiP2pManager.P2P_UNSUPPORTED:
+                    errorMessage = "P2P_UNSUPPORTED";
+                    break;
+                case WifiP2pManager.ERROR:
+                    errorMessage = "ERROR";
+                    break;
+                case WifiP2pManager.NO_SERVICE_REQUESTS:
+                    errorMessage = "NO_SERVICE_REQUESTS";
+                    break;
+                default:
+                    errorMessage = "Unhandled error";
+                    break;
+            }
+            Log.e("WifiP2pActionListener:" + this.actionName + "onFailure: " + errorMessage);
+            event.getData().putString(EVENT_KEY_CALLBACK_NAME, ACTION_LISTENER_ON_FAILURE);
+            event.getData().putInt(EVENT_KEY_REASON, reason);
+            event.getData().putString(EVENT_KEY_REASON_MESSAGE, errorMessage);
+
             EventCache.getInstance().postEvent(event);
         }
     }
