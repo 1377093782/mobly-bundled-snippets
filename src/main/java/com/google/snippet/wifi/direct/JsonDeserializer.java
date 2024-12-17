@@ -18,9 +18,6 @@ package com.google.snippet.wifi.direct;
 
 import android.net.MacAddress;
 import android.net.wifi.p2p.WifiP2pConfig;
-import android.net.wifi.p2p.nsd.WifiP2pServiceInfo;
-import android.net.wifi.p2p.nsd.WifiP2pServiceRequest;
-import android.net.wifi.p2p.nsd.WifiP2pUpnpServiceRequest;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -35,9 +32,6 @@ public class JsonDeserializer {
     private static final String GROUP_OPERATING_FREQUENCY = "group_operating_frequency";
     private static final String NETWORK_NAME = "network_name";
     private static final String PASSPHRASE = "passphrase";
-
-    private static final String SERVICE_TYPE = "service_type";
-    private static final String REQUEST_TYPE = "request_type";
 
     /** Converts Python dict to android.net.wifi.p2p.WifiP2pConfig. */
     public static WifiP2pConfig jsonToWifiP2pConfig(JSONObject jsonObject) throws JSONException {
@@ -77,45 +71,4 @@ public class JsonDeserializer {
         }
         return builder.build();
     }
-
-    /**
-     * Converts Python dict to {@link WifiP2pServiceInfo}.
-     */
-    public static WifiP2pServiceInfo jsonToWifiP2pServiceInfo(JSONObject jsonObject)
-            throws JSONException {
-        WifiP2pServiceInfo wifiP2pServiceInfo = null;
-        if (jsonObject.has(SERVICE_TYPE)) {
-            int serverType = jsonObject.getInt(SERVICE_TYPE);
-            switch (serverType) {
-                case 1:
-                    wifiP2pServiceInfo = LocalServices.createIppService();
-                    break;
-                case 2:
-                    wifiP2pServiceInfo = LocalServices.createAfpService();
-                    break;
-                default:
-                    wifiP2pServiceInfo = LocalServices.createRendererService();
-                    break;
-            }
-        }
-        return wifiP2pServiceInfo;
-    }
-
-    /**
-     * Converts Python dict to {@link WifiP2pUpnpServiceRequest}.
-     */
-    public static WifiP2pServiceRequest jsonToWifiP2pServiceRequest(JSONObject jsonObject)
-            throws JSONException {
-        WifiP2pServiceRequest wifiP2pServiceRequest = null;
-        if (jsonObject.has(REQUEST_TYPE)) {
-            int requestType = jsonObject.getInt(REQUEST_TYPE);
-            switch (requestType) {
-                default:
-                    wifiP2pServiceRequest = WifiP2pUpnpServiceRequest.newInstance();
-                    break;
-            }
-        }
-        return wifiP2pServiceRequest;
-    }
-
 }

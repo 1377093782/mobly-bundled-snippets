@@ -4,7 +4,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.3.1'
+        classpath 'com.android.tools.build:gradle:7.4.2'
 
         // NOTE: Do not place your application dependencies here.
     }
@@ -53,11 +53,7 @@ android {
     buildToolsVersion '35.0.0'
 }
 
-// Produces a jar of source files. Needed for compliance reasons.
-task sourcesJar(type: Jar) {
-    from android.sourceSets.main.java.srcDirs
-    classifier = 'src'
-}
+
 
 task javadoc(type: Javadoc) {
     source = android.sourceSets.main.java.srcDirs
@@ -65,9 +61,7 @@ task javadoc(type: Javadoc) {
         android.getBootClasspath().join(File.pathSeparator))
 }
 
-artifacts {
-    archives sourcesJar
-}
+
 
 dependencies {
     implementation 'androidx.test:runner:1.5.2'
