@@ -32,6 +32,7 @@ import android.net.wifi.p2p.WifiP2pGroupList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
+import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
 import android.net.wifi.p2p.nsd.WifiP2pServiceInfo;
 import android.net.wifi.p2p.nsd.WifiP2pServiceRequest;
 import android.net.wifi.p2p.nsd.WifiP2pUpnpServiceInfo;
@@ -181,6 +182,7 @@ public class WifiP2pManagerSnippet implements Snippet {
         checkChannel();
         mP2pManager.requestPeers(mChannel, new PeerListListener(callbackId));
     }
+
     /**
      * Cancel any ongoing p2p group negotiation.
      *
@@ -301,7 +303,7 @@ public class WifiP2pManagerSnippet implements Snippet {
         UiObject2 okButton = mUiDevice.findObject(By.text("OK").clazz(Button.class));
         if (okButton == null) {
             throw new WifiP2pManagerException(
-                "OK button not found in the p2p connection invitation pop-up window.");
+                    "OK button not found in the p2p connection invitation pop-up window.");
         }
         okButton.click();
         Log.d("Closed the p2p connect invitation pop-up window.");
@@ -311,7 +313,7 @@ public class WifiP2pManagerSnippet implements Snippet {
     /**
      * Enters the given PIN code to accept a P2P connection invitation.
      *
-     * @param pinCode The PIN to enter.
+     * @param pinCode    The PIN to enter.
      * @param deviceName The name of the device that initiated the connection.
      */
     @Rpc(description = "Enter the PIN code to accept a P2P connection invitation.")
@@ -398,7 +400,7 @@ public class WifiP2pManagerSnippet implements Snippet {
 
         String callbackId = UUID.randomUUID().toString();
         mP2pManager.addLocalService(mChannel, serviceInfo,
-                                    new ActionListener(callbackId));
+                new ActionListener(callbackId));
         verifyActionListenerSucceed(callbackId);
     }
 
@@ -466,6 +468,21 @@ public class WifiP2pManagerSnippet implements Snippet {
         return mServiceRequestCnt;
     }
 
+    /** "Add a service Bonjour discovery request. */
+    @Rpc(description = "Add a service Bonjour discovery request.")
+    public Integer wifiP2pAddBonjourServiceRequest() throws Throwable {
+        checkChannel();
+
+        WifiP2pDnsSdServiceRequest request = WifiP2pDnsSdServiceRequest.newInstance();
+        mServiceRequestCnt += 1;
+        mServiceRequests.put(mServiceRequestCnt, request);
+
+        String callbackId = UUID.randomUUID().toString();
+        mP2pManager.addServiceRequest(mChannel, request, new ActionListener(callbackId));
+        verifyActionListenerSucceed(callbackId);
+        return mServiceRequestCnt;
+    }
+
     /** Remove a service discovery request. */
     @Rpc(description = "Remove a service discovery request.")
     public void wifiP2pRemoveServiceRequest(int index) throws Throwable {
@@ -487,7 +504,7 @@ public class WifiP2pManagerSnippet implements Snippet {
 
     /** Set a callback to be invoked on receiving Upnp service discovery response. */
     @AsyncRpc(description = "Set a callback to be invoked on receiving Upnp service discovery "
-                + " response.")
+            + " response.")
     public void wifiP2pSetUpnpResponseListener(String callbackId) throws WifiP2pManagerException {
         checkChannel();
         mP2pManager.setUpnpServiceResponseListener(mChannel,
