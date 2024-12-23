@@ -182,7 +182,6 @@ public class WifiP2pManagerSnippet implements Snippet {
         checkChannel();
         mP2pManager.requestPeers(mChannel, new PeerListListener(callbackId));
     }
-
     /**
      * Cancel any ongoing p2p group negotiation.
      *
@@ -303,7 +302,7 @@ public class WifiP2pManagerSnippet implements Snippet {
         UiObject2 okButton = mUiDevice.findObject(By.text("OK").clazz(Button.class));
         if (okButton == null) {
             throw new WifiP2pManagerException(
-                    "OK button not found in the p2p connection invitation pop-up window.");
+                "OK button not found in the p2p connection invitation pop-up window.");
         }
         okButton.click();
         Log.d("Closed the p2p connect invitation pop-up window.");
@@ -313,7 +312,7 @@ public class WifiP2pManagerSnippet implements Snippet {
     /**
      * Enters the given PIN code to accept a P2P connection invitation.
      *
-     * @param pinCode    The PIN to enter.
+     * @param pinCode The PIN to enter.
      * @param deviceName The name of the device that initiated the connection.
      */
     @Rpc(description = "Enter the PIN code to accept a P2P connection invitation.")
@@ -504,7 +503,7 @@ public class WifiP2pManagerSnippet implements Snippet {
 
     /** Set a callback to be invoked on receiving Upnp service discovery response. */
     @AsyncRpc(description = "Set a callback to be invoked on receiving Upnp service discovery "
-            + " response.")
+                + " response.")
     public void wifiP2pSetUpnpResponseListener(String callbackId) throws WifiP2pManagerException {
         checkChannel();
         mP2pManager.setUpnpServiceResponseListener(mChannel,
