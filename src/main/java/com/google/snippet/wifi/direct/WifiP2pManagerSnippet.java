@@ -452,6 +452,19 @@ public class WifiP2pManagerSnippet implements Snippet {
         return mServiceRequestCnt;
     }
 
+    @Rpc(description = "Add a service discovery request.")
+    public Integer wifiP2pAddServiceRequestFromJson(JSONObject jsonObject) throws Throwable {
+        checkChannel();
+        WifiP2pServiceRequest request =  JsonDeserializer.jsonToWifiP2pServiceRequest(jsonObject);
+        mServiceRequestCnt += 1;
+        mServiceRequests.put(mServiceRequestCnt, request);
+
+        String callbackId = UUID.randomUUID().toString();
+        mP2pManager.addServiceRequest(mChannel, request, new ActionListener(callbackId));
+        verifyActionListenerSucceed(callbackId);
+        return mServiceRequestCnt;
+    }
+
     /** "Add a service Upnp discovery request. */
     @Rpc(description = "Add a service Upnp discovery request.")
     public Integer wifiP2pAddUpnpServiceRequest() throws Throwable {
