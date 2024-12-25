@@ -41,7 +41,6 @@ import android.os.Bundle;
 import android.widget.Button;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.uiautomator.By;
@@ -445,7 +444,7 @@ public class WifiP2pManagerSnippet implements Snippet {
     @Rpc(description = "Add a service discovery request.")
     public Integer wifiP2pAddServiceRequest(int protocolType, @RpcOptional boolean useSubChannel)
             throws Throwable {
-        WifiP2pManager.Channel channel= checkChannel(useSubChannel);
+        WifiP2pManager.Channel channel = checkChannel(useSubChannel);
 
         WifiP2pServiceRequest request = WifiP2pServiceRequest.newInstance(protocolType);
         mServiceRequestCnt += 1;
@@ -475,7 +474,7 @@ public class WifiP2pManagerSnippet implements Snippet {
     /** "Add a service Bonjour discovery request. */
     @Rpc(description = "Add a service Bonjour discovery request.")
     public Integer wifiP2pAddBonjourServiceRequest(@RpcOptional boolean useSubChannel) throws Throwable {
-        WifiP2pManager.Channel channel= checkChannel(useSubChannel);
+        WifiP2pManager.Channel channel = checkChannel(useSubChannel);
 
         WifiP2pDnsSdServiceRequest request = WifiP2pDnsSdServiceRequest.newInstance();
         mServiceRequestCnt += 1;
@@ -512,7 +511,7 @@ public class WifiP2pManagerSnippet implements Snippet {
     public void wifiP2pSetUpnpResponseListener(
             String callbackId, @RpcOptional boolean useSubChannel
     ) throws WifiP2pManagerException {
-        WifiP2pManager.Channel channel= checkChannel(useSubChannel);
+        WifiP2pManager.Channel channel = checkChannel(useSubChannel);
         mP2pManager.setUpnpServiceResponseListener(channel,
                 new UpnpServiceResponseListener(callbackId));
     }
@@ -521,7 +520,7 @@ public class WifiP2pManagerSnippet implements Snippet {
     @Rpc(description = "Unset the Upnp service response callback set by "
             + "`wifiP2pSetUpnpResponseListener`.")
     public void wifiP2pUnsetUpnpResponseListener(@RpcOptional boolean useSubChannel) throws WifiP2pManagerException {
-        WifiP2pManager.Channel channel= checkChannel(useSubChannel);
+        WifiP2pManager.Channel channel = checkChannel(useSubChannel);
         mP2pManager.setUpnpServiceResponseListener(channel, null);
     }
 
@@ -531,7 +530,7 @@ public class WifiP2pManagerSnippet implements Snippet {
     public void wifiP2pSetDnsSdResponseListeners(
             String callbackId, @RpcOptional boolean useSubChannel
     ) throws WifiP2pManagerException {
-        WifiP2pManager.Channel channel= checkChannel(useSubChannel);
+        WifiP2pManager.Channel channel = checkChannel(useSubChannel);
         mP2pManager.setDnsSdResponseListeners(channel,
                 new DnsSdServiceResponseListener(callbackId),
                 new DnsSdTxtRecordListener(callbackId));
