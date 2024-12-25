@@ -473,7 +473,8 @@ public class WifiP2pManagerSnippet implements Snippet {
 
     /** "Add a service Bonjour discovery request. */
     @Rpc(description = "Add a service Bonjour discovery request.")
-    public Integer wifiP2pAddBonjourServiceRequest(@RpcOptional boolean useSubChannel) throws Throwable {
+    public Integer wifiP2pAddBonjourServiceRequest(@RpcOptional boolean useSubChannel)
+            throws Throwable {
         WifiP2pManager.Channel channel = checkChannel(useSubChannel);
 
         WifiP2pDnsSdServiceRequest request = WifiP2pDnsSdServiceRequest.newInstance();
@@ -519,7 +520,8 @@ public class WifiP2pManagerSnippet implements Snippet {
     /** Unset the Upnp service response callback set by `wifiP2pSetUpnpResponseListener`. */
     @Rpc(description = "Unset the Upnp service response callback set by "
             + "`wifiP2pSetUpnpResponseListener`.")
-    public void wifiP2pUnsetUpnpResponseListener(@RpcOptional boolean useSubChannel) throws WifiP2pManagerException {
+    public void wifiP2pUnsetUpnpResponseListener(@RpcOptional boolean useSubChannel)
+            throws WifiP2pManagerException {
         WifiP2pManager.Channel channel = checkChannel(useSubChannel);
         mP2pManager.setUpnpServiceResponseListener(channel, null);
     }
@@ -539,7 +541,8 @@ public class WifiP2pManagerSnippet implements Snippet {
     /** Unset the Bonjour service response callback set by `wifiP2pSetDnsSdResponseListeners`. */
     @Rpc(description = "Unset the Bonjour service response callback set by "
             + "`wifiP2pSetDnsSdResponseListeners`.")
-    public void wifiP2pUnsetDnsSdResponseListeners(@RpcOptional boolean useSubChannel) throws WifiP2pManagerException {
+    public void wifiP2pUnsetDnsSdResponseListeners(@RpcOptional boolean useSubChannel)
+            throws WifiP2pManagerException {
         WifiP2pManager.Channel channel = checkChannel(useSubChannel);
         mP2pManager.setDnsSdResponseListeners(channel, null, null);
     }
@@ -562,11 +565,11 @@ public class WifiP2pManagerSnippet implements Snippet {
                     + " connections created by the app can be removed."
     )
     public void p2pClose() {
-        if (mChannel!= null) {
+        if (mChannel != null) {
             mChannel.close();
             mChannel = null;
         }
-        if (mSubChannel!= null) {
+        if (mSubChannel != null) {
             mSubChannel.close();
             mSubChannel = null;
         }
@@ -779,21 +782,21 @@ public class WifiP2pManagerSnippet implements Snippet {
         }
     }
 
-    private WifiP2pManager.Channel checkChannel(boolean useSubChannel) throws WifiP2pManagerException {
-        if(useSubChannel){
+    private WifiP2pManager.Channel checkChannel(boolean useSubChannel)
+            throws WifiP2pManagerException {
+        if (useSubChannel){
             if (mSubChannel == null) {
-                throw new WifiP2pManagerException(
-                        "Channel is not created, please call 'wifiP2pInitialize' first.");
+                throw new WifiP2pManagerException("Channel is not created, please call "
+                        + "'wifiP2pInitialize' first.");
             }
             return mSubChannel;
-        }else {
+        } else {
             if (mChannel == null) {
-                throw new WifiP2pManagerException(
-                        "Channel is not created, please call 'wifiP2pInitialize' first.");
+                throw new WifiP2pManagerException("Channel is not created, please call "
+                        + "'wifiP2pInitialize' first.");
             }
             return mChannel;
         }
-      
     }
 
     private void checkSubChannel() throws WifiP2pManagerException {
