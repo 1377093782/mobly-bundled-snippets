@@ -32,11 +32,9 @@ import android.net.wifi.p2p.WifiP2pGroupList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
-import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
 import android.net.wifi.p2p.nsd.WifiP2pServiceInfo;
 import android.net.wifi.p2p.nsd.WifiP2pServiceRequest;
 import android.net.wifi.p2p.nsd.WifiP2pUpnpServiceInfo;
-import android.net.wifi.p2p.nsd.WifiP2pUpnpServiceRequest;
 import android.os.Bundle;
 import android.widget.Button;
 
@@ -441,11 +439,14 @@ public class WifiP2pManagerSnippet implements Snippet {
 
     /** Add a service discovery request. */
     @Rpc(description = "Add a service discovery request.")
-    public Integer wifiP2pAddServiceRequest(int protocolType, @RpcOptional boolean useSubChannel)
-            throws Throwable {
+    public Integer wifiP2pAddServiceRequestFromJson(
+            JSONObject jsonObject, @RpcOptional boolean useSubChannel
+    ) throws Throwable {
         WifiP2pManager.Channel channel = checkChannel(useSubChannel);
-
-        WifiP2pServiceRequest request = WifiP2pServiceRequest.newInstance(protocolType);
+        WifiP2pServiceRequest request = JsonDeserializer.jsonToWifiP2pServiceRequest(jsonObject);
+        if (request == null) {
+            throw new WifiP2pManagerException("Failed to parse the service request from JSON.");
+        }
         mServiceRequestCnt += 1;
         mServiceRequests.put(mServiceRequestCnt, request);
 
