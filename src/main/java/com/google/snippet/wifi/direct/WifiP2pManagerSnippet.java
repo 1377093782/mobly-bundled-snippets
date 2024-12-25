@@ -32,6 +32,7 @@ import android.net.wifi.p2p.WifiP2pGroupList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
+import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
 import android.net.wifi.p2p.nsd.WifiP2pServiceInfo;
 import android.net.wifi.p2p.nsd.WifiP2pServiceRequest;
 import android.net.wifi.p2p.nsd.WifiP2pUpnpServiceInfo;
@@ -398,7 +399,7 @@ public class WifiP2pManagerSnippet implements Snippet {
 
         String callbackId = UUID.randomUUID().toString();
         mP2pManager.addLocalService(mChannel, serviceInfo,
-                                    new ActionListener(callbackId));
+                new ActionListener(callbackId));
         verifyActionListenerSucceed(callbackId);
     }
 
@@ -457,6 +458,21 @@ public class WifiP2pManagerSnippet implements Snippet {
         checkChannel();
 
         WifiP2pUpnpServiceRequest request = WifiP2pUpnpServiceRequest.newInstance();
+        mServiceRequestCnt += 1;
+        mServiceRequests.put(mServiceRequestCnt, request);
+
+        String callbackId = UUID.randomUUID().toString();
+        mP2pManager.addServiceRequest(mChannel, request, new ActionListener(callbackId));
+        verifyActionListenerSucceed(callbackId);
+        return mServiceRequestCnt;
+    }
+
+    /** "Add a service Bonjour discovery request. */
+    @Rpc(description = "Add a service Bonjour discovery request.")
+    public Integer wifiP2pAddBonjourServiceRequest() throws Throwable {
+        checkChannel();
+
+        WifiP2pDnsSdServiceRequest request = WifiP2pDnsSdServiceRequest.newInstance();
         mServiceRequestCnt += 1;
         mServiceRequests.put(mServiceRequestCnt, request);
 
@@ -566,7 +582,7 @@ public class WifiP2pManagerSnippet implements Snippet {
         public void onReceive(Context mContext, Intent intent) {
             String action = intent.getAction();
             SnippetEvent event = new SnippetEvent(mCallbackId, action);
-            String logPrefix = TAG + ": WifiP2pStateChangedReceiver: onReceive: Got intent: action="
+            String logPrefix = TAG + ": WifiP2pStateChangedReceiver:onReceive: Got intent: action="
                     + action + ", ";
             switch (action) {
                 case WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION:
@@ -577,7 +593,7 @@ public class WifiP2pManagerSnippet implements Snippet {
                 case WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION:
                     WifiP2pDeviceList peerList = (WifiP2pDeviceList) intent.getParcelableExtra(
                             WifiP2pManager.EXTRA_P2P_DEVICE_LIST);
-                    Log.d(logPrefix + "p2pPeerList=" + BundleUtils.fromWifiP2pDeviceList(peerList));
+                    Log.d(logPrefix + "p2pPeerList=" + peerList.toString());
                     event.getData().putParcelableArrayList(
                             EVENT_KEY_PEER_LIST, BundleUtils.fromWifiP2pDeviceList(peerList));
                     break;
