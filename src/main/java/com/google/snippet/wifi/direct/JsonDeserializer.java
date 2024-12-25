@@ -18,7 +18,9 @@ package com.google.snippet.wifi.direct;
 
 import android.net.MacAddress;
 import android.net.wifi.p2p.WifiP2pConfig;
+import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
 import android.net.wifi.p2p.nsd.WifiP2pServiceRequest;
+import android.net.wifi.p2p.nsd.WifiP2pUpnpServiceRequest;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -33,6 +35,7 @@ public class JsonDeserializer {
     private static final String NETWORK_NAME = "network_name";
     private static final String PASSPHRASE = "passphrase";
     private static final String PROTOCOL_TYPE = "protocol_type";
+    private static final String INSTANCE_CREATE_TYPE = "instance_create_type";
 
 
     /** Converts Python dict to android.net.wifi.p2p.WifiP2pConfig. */
@@ -82,9 +85,24 @@ public class JsonDeserializer {
             throw new JSONException("jsonObject is null,please call jsonToWifiP2pServiceRequest"
                     + " with a valid JSONObject");
         }
-        if (jsonObject.has(PROTOCOL_TYPE)) {
-            return WifiP2pServiceRequest.newInstance(jsonObject.getInt(PROTOCOL_TYPE));
+        // If both are included, an error is returned.
+        if (jsonObject.has(INSTANCE_CREATE_TYPE) && jsonObject.has(PROTOCOL_TYPE)) {
+            throw new JSONException("Both instance_create_type and protocol_type are included.");
         }
-        return null;
+
+        if (jsonObject.has(INSTANCE_CREATE_TYPE)) {
+            String instanceCreateType = jsonObject.getString(INSTANCE_CREATE_TYPE);
+            if (instanceCreateType.equals("WifiP2pUpnpServiceRequest")) {
+                return WifiP2pUpnpServiceRequest.newInstance();
+            } else if (instanceCreateType.equals("WifiP2pDnsSdServiceRequest")) {
+                return WifiP2pDnsSdServiceRequest.newInstance();
+            } else {
+                throw new JSONException("instance_create_type is not valid.");
+            }
+        } else if (jsonObject.has(PROTOCOL_TYPE)) {
+            return WifiP2pServiceRequest.newInstance(jsonObject.getInt(PROTOCOL_TYPE));
+        } else {
+            throw new JSONException("instance_create_type or protocol_type is not included.");
+        }
     }
 }

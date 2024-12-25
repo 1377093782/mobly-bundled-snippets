@@ -176,6 +176,36 @@ public class WifiP2pManagerSnippet implements Snippet {
         verifyActionListenerSucceed(callbackId);
     }
 
+    /**
+     * Initiate peer discovery. A discovery process involves scanning for available Wi-Fi peers for
+     * the purpose of establishing a connection.
+     *
+     * @throws Throwable If this failed to initiate discovery, or the action timed out.
+     */
+    @AsyncRpc(
+            description = "Initiate peer discovery. A discovery process involves scanning for "
+                    + "available Wi-Fi peers for the purpose of establishing a connection.")
+    public void wifiP2pDiscoverPeersAsync(String callbackId) throws Throwable {
+        checkChannel();
+        mP2pManager.discoverPeers(mChannel, new ActionListener(callbackId));
+    }
+
+    /**
+     * Initiate peer discovery. A discovery process involves scanning for available Wi-Fi peers for
+     * the purpose of establishing a connection.
+     *
+     * @throws Throwable If this failed to initiate discovery, or the action timed out.
+     */
+    @Rpc(
+            description = "Initiate peer discovery. A discovery process involves scanning for "
+                    + "available Wi-Fi peers for the purpose of establishing a connection.")
+    public void wifiP2pDiscoverPeersNoCallback() throws Throwable {
+        checkChannel();
+        mP2pManager.discoverPeers(mChannel, null);
+    }
+
+
+
     /** Request peers that are discovered for wifi p2p. */
     @AsyncRpc(description = "Request peers that are discovered for wifi p2p.")
     public void wifiP2pRequestPeers(String callbackId) throws Throwable {
@@ -452,10 +482,14 @@ public class WifiP2pManagerSnippet implements Snippet {
         return mServiceRequestCnt;
     }
 
+    /** Add a service discovery request. */
     @Rpc(description = "Add a service discovery request.")
     public Integer wifiP2pAddServiceRequestFromJson(JSONObject jsonObject) throws Throwable {
         checkChannel();
-        WifiP2pServiceRequest request =  JsonDeserializer.jsonToWifiP2pServiceRequest(jsonObject);
+        WifiP2pServiceRequest request = JsonDeserializer.jsonToWifiP2pServiceRequest(jsonObject);
+        if (request == null) {
+            throw new WifiP2pManagerException("Failed to parse the service request from JSON.");
+        }
         mServiceRequestCnt += 1;
         mServiceRequests.put(mServiceRequestCnt, request);
 
