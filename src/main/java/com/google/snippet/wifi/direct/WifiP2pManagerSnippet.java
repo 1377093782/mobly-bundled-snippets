@@ -176,12 +176,41 @@ public class WifiP2pManagerSnippet implements Snippet {
         verifyActionListenerSucceed(callbackId);
     }
 
+    /**
+     * Initiate peer discovery. A discovery process involves scanning for available Wi-Fi peers for
+     * the purpose of establishing a connection.
+     *
+     * @throws Throwable If this failed to initiate discovery, or the action timed out.
+     */
+    @AsyncRpc(
+            description = "Initiate peer discovery. A discovery process involves scanning for "
+                    + "available Wi-Fi peers for the purpose of establishing a connection.")
+    public void wifiP2pDiscoverPeersAsync(String callbackId) throws Throwable {
+        checkChannel(false);
+        mP2pManager.discoverPeers(mChannel, new ActionListener(callbackId));
+    }
+
+    /**
+     * Initiate peer discovery. A discovery process involves scanning for available Wi-Fi peers for
+     * the purpose of establishing a connection.
+     *
+     * @throws Throwable If this failed to initiate discovery, or the action timed out.
+     */
+    @Rpc(
+            description = "Initiate peer discovery. A discovery process involves scanning for "
+                    + "available Wi-Fi peers for the purpose of establishing a connection.")
+    public void wifiP2pDiscoverPeersNoCallback() throws Throwable {
+        checkChannel(false);
+        mP2pManager.discoverPeers(mChannel, null);
+    }
+
     /** Request peers that are discovered for wifi p2p. */
     @AsyncRpc(description = "Request peers that are discovered for wifi p2p.")
     public void wifiP2pRequestPeers(String callbackId) throws Throwable {
         checkChannel(false);
         mP2pManager.requestPeers(mChannel, new PeerListListener(callbackId));
     }
+
     /**
      * Cancel any ongoing p2p group negotiation.
      *
@@ -456,36 +485,6 @@ public class WifiP2pManagerSnippet implements Snippet {
         return mServiceRequestCnt;
     }
 
-    /** "Add a service Upnp discovery request. */
-    @Rpc(description = "Add a service Upnp discovery request.")
-    public Integer wifiP2pAddUpnpServiceRequest(boolean useSubChannel) throws Throwable {
-        checkChannel(false);
-
-        WifiP2pUpnpServiceRequest request = WifiP2pUpnpServiceRequest.newInstance();
-        mServiceRequestCnt += 1;
-        mServiceRequests.put(mServiceRequestCnt, request);
-
-        String callbackId = UUID.randomUUID().toString();
-        mP2pManager.addServiceRequest(mChannel, request, new ActionListener(callbackId));
-        verifyActionListenerSucceed(callbackId);
-        return mServiceRequestCnt;
-    }
-
-    /** "Add a service Bonjour discovery request. */
-    @Rpc(description = "Add a service Bonjour discovery request.")
-    public Integer wifiP2pAddBonjourServiceRequest(@RpcOptional boolean useSubChannel)
-            throws Throwable {
-        WifiP2pManager.Channel channel = checkChannel(useSubChannel);
-
-        WifiP2pDnsSdServiceRequest request = WifiP2pDnsSdServiceRequest.newInstance();
-        mServiceRequestCnt += 1;
-        mServiceRequests.put(mServiceRequestCnt, request);
-
-        String callbackId = UUID.randomUUID().toString();
-        mP2pManager.addServiceRequest(channel, request, new ActionListener(callbackId));
-        verifyActionListenerSucceed(callbackId);
-        return mServiceRequestCnt;
-    }
 
     /** Remove a service discovery request. */
     @Rpc(description = "Remove a service discovery request.")
