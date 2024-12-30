@@ -101,10 +101,11 @@ public class WifiP2pManagerSnippet implements Snippet {
     private Instrumentation mInstrumentation = InstrumentationRegistry.getInstrumentation();
     private UiDevice mUiDevice = UiDevice.getInstance(mInstrumentation);
 
-    private final HashMap<Integer, WifiP2pManager.Channel> mChannel = new HashMap<>();
+    private final HashMap<Integer, WifiP2pManager.Channel> mChannels = new HashMap<>();
     private WifiP2pStateChangedReceiver mStateChangedReceiver = null;
 
     private int mServiceRequestCnt = 0;
+    private int mChannelCnts = 0;
 
     private final Map<Integer, WifiP2pServiceRequest> mServiceRequests;
 
@@ -140,37 +141,41 @@ public class WifiP2pManagerSnippet implements Snippet {
     /**
      * Initializes the application with the Wi-Fi P2P framework and registers necessary receivers.
      *
-     * @param callbackId The callback ID assigned by Mobly, also used as the session ID for
-     *                   further operations.
+     * @param callbackId The callback ID assigned by Mobly
+     * @return Main channel ID
      */
     @AsyncRpc(description = "Register the application with the Wi-Fi framework.")
-    public void wifiP2pInitialize(String callbackId) throws WifiP2pManagerException {
+    public int wifiP2pInitialize(String callbackId) throws WifiP2pManagerException {
         if (mStateChangedReceiver != null) {
             throw new WifiP2pManagerException("WifiP2pManager has already been initialized. "
                     + "Please call `p2pClose()` close the current connection.");
         }
         checkP2pManager();
+        // Initialize the main channel. This channel will be used by default if an Wi-Fi P2P RPC
+        // method is called without a channel ID.
+        WifiP2pManager.Channel channel =
+                mP2pManager.initialize(mContext, mContext.getMainLooper(), null);
+        mChannels.put(0, channel);
         mStateChangedReceiver = new WifiP2pStateChangedReceiver(callbackId);
         mContext.registerReceiver(mStateChangedReceiver, mIntentFilter,
                 Context.RECEIVER_NOT_EXPORTED);
-        // Initialize the main channel. If the Rpc method does not specify a channel ID,
-        // this channel will always be used.
-        WifiP2pManager.Channel channel =
-                mP2pManager.initialize(mContext, mContext.getMainLooper(), null);
-        mChannel.put(0, channel);
+        return 0;
     }
 
     /**
-     * Supports running multiple channels.
+     * Initialize an extra Wi-Fi P2P channel. This is needed when you need to test with
+     * multiple channels.
+     *
      * @return The id of the new channel
      */
-    @Rpc(description = "Supports running multiple channels.")
-    public int initializeWifiP2pChannel() {
+    @Rpc(description = "Initialize an extra Wi-Fi P2P channel. This is needed when you need to "
+            + "test with multiple channels.")
+    public int wifiP2pInitExtraChannel() {
         WifiP2pManager.Channel channel =
                 mP2pManager.initialize(mContext, mContext.getMainLooper(), null);
-        int channelId = channel.hashCode();
-        mChannel.put(channelId, channel);
-        return channelId;
+        mChannelCnts += 1;
+        mChannels.put(mChannelCnts, channel);
+        return mChannelCnts;
     }
 
     /** Request the device information in the form of WifiP2pDevice. */
@@ -524,7 +529,7 @@ public class WifiP2pManagerSnippet implements Snippet {
 
     /** Remove a service discovery request. */
     @Rpc(description = "Remove a service discovery request.")
-    public void wifiP2pRemoveServiceRequest(@RpcDefault(value = "0") Integer channelId, int index)
+    public void wifiP2pRemoveServiceRequest(int index, @RpcDefault(value = "0") Integer channelId)
             throws Throwable {
         WifiP2pManager.Channel channel = checkAndGetChannel(channelId);
         String callbackId = UUID.randomUUID().toString();
@@ -597,16 +602,16 @@ public class WifiP2pManagerSnippet implements Snippet {
      * Close the current P2P connection and indicate to the P2P service that connections created by
      * the app can be removed.
      */
-    @Rpc(description = "Close the current P2P connection and indicate to the P2P service that"
+    @Rpc(description = "Close all P2P connections and indicate to the P2P service that"
             + " connections created by the app can be removed.")
     public void p2pClose() {
-        mChannel.forEach((key, channel) -> {
+        mChannels.forEach((key, channel) -> {
             if (channel != null) {
                 channel.close();
                 channel = null;
             }
         });
-        mChannel.clear();
+        mChannels.clear();
         if (mStateChangedReceiver != null) {
             mContext.unregisterReceiver(mStateChangedReceiver);
             mStateChangedReceiver = null;
@@ -824,16 +829,15 @@ public class WifiP2pManagerSnippet implements Snippet {
      */
     private WifiP2pManager.Channel checkAndGetChannel(int channelId)
             throws WifiP2pManagerException {
-        if (mChannel.isEmpty()) {
+        if (mChannels.isEmpty()) {
             throw new WifiP2pManagerException(
                     "Channel is not created, please call `wifiP2pInitialize' first.");
         }
-        WifiP2pManager.Channel channel = mChannel.get(channelId);
+        WifiP2pManager.Channel channel = mChannels.get(channelId);
         if (channel == null) {
             throw new WifiP2pManagerException(
-                    "The channelId is wrong. Please use the channelId returned by calling "
-                            + "`wifiP2pInitialize` or \"do not pass/use 0\""
-                            + " to use the default channel");
+                    "The channelId " + channelId + " is wrong. Please use the channelId returned "
+                            + "by calling `wifiP2pInitialize` or `wifiP2pInitExtraChannel`.");
         }
         return channel;
     }
