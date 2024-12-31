@@ -105,7 +105,7 @@ public class WifiP2pManagerSnippet implements Snippet {
     private WifiP2pStateChangedReceiver mStateChangedReceiver = null;
 
     private int mServiceRequestCnt = 0;
-    private int mChannelCnts = 0;
+    private int mChannelCnt = 0;
 
     private final Map<Integer, WifiP2pServiceRequest> mServiceRequests;
 
@@ -153,13 +153,14 @@ public class WifiP2pManagerSnippet implements Snippet {
         checkP2pManager();
         // Initialize the main channel. This channel will be used by default if an Wi-Fi P2P RPC
         // method is called without a channel ID.
-        WifiP2pManager.Channel channel =
-                mP2pManager.initialize(mContext, mContext.getMainLooper(), null);
-        mChannels.put(0, channel);
         mStateChangedReceiver = new WifiP2pStateChangedReceiver(callbackId);
         mContext.registerReceiver(mStateChangedReceiver, mIntentFilter,
                 Context.RECEIVER_NOT_EXPORTED);
-        return 0;
+        WifiP2pManager.Channel channel =
+                mP2pManager.initialize(mContext, mContext.getMainLooper(), null);
+        mChannels.put(mChannelCnt, channel);
+        mChannelCnt += 1;
+        return mChannelCnt - 1;
     }
 
     /**
@@ -173,9 +174,9 @@ public class WifiP2pManagerSnippet implements Snippet {
     public int wifiP2pInitExtraChannel() {
         WifiP2pManager.Channel channel =
                 mP2pManager.initialize(mContext, mContext.getMainLooper(), null);
-        mChannelCnts += 1;
-        mChannels.put(mChannelCnts, channel);
-        return mChannelCnts;
+        mChannels.put(mChannelCnt, channel);
+        mChannelCnt += 1;
+        return mChannelCnt - 1;
     }
 
     /** Request the device information in the form of WifiP2pDevice. */
@@ -604,7 +605,11 @@ public class WifiP2pManagerSnippet implements Snippet {
      */
     @Rpc(description = "Close all P2P connections and indicate to the P2P service that"
             + " connections created by the app can be removed.")
-    public void p2pClose() {
+    public void p2pClose(@RpcDefault(value = "0") Integer channelId) throws Throwable {
+        wifiP2pClearServiceRequests(channelId);
+        wifiP2pUnsetDnsSdResponseListeners(channelId);
+        wifiP2pUnsetUpnpResponseListener(channelId);
+        wifiP2pClearLocalServices(channelId);
         mChannels.forEach((key, channel) -> {
             if (channel != null) {
                 channel.close();
