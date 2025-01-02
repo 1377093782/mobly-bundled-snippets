@@ -153,20 +153,19 @@ public class WifiP2pManagerSnippet implements Snippet {
         checkP2pManager();
         // Initialize the main channel. This channel will be used by default if an Wi-Fi P2P RPC
         // method is called without a channel ID.
+        mStateChangedReceiver = new WifiP2pStateChangedReceiver(callbackId);
+        mContext.registerReceiver(mStateChangedReceiver, mIntentFilter,
+                Context.RECEIVER_NOT_EXPORTED);
         WifiP2pManager.Channel channel =
                 mP2pManager.initialize(mContext, mContext.getMainLooper(), null);
         mChannels.put(mChannelCnt, channel);
         mChannelCnt += 1;
-        mStateChangedReceiver = new WifiP2pStateChangedReceiver(callbackId);
-        mContext.registerReceiver(mStateChangedReceiver, mIntentFilter,
-                Context.RECEIVER_NOT_EXPORTED);
-
         return mChannelCnt - 1;
     }
 
     /**
-     * Initialize an extra Wi-Fi P2P channel. This is needed when you need to test with multiple
-     * channels.
+     * Initialize an extra Wi-Fi P2P channel. This is needed when you need to test with
+     * multiple channels.
      *
      * @return The id of the new channel
      */
@@ -402,7 +401,7 @@ public class WifiP2pManagerSnippet implements Snippet {
     public void wifiP2pRequestPersistentGroupInfo(
             String callbackId,
             @RpcDefault(value = "0"
-            ) Integer channelId) throws Throwable {
+    ) Integer channelId) throws Throwable {
         WifiP2pManager.Channel channel = checkAndGetChannel(channelId);
         mP2pManager.requestPersistentGroupInfo(channel,
                 new PersistentGroupInfoListener(callbackId));
@@ -429,7 +428,7 @@ public class WifiP2pManagerSnippet implements Snippet {
             String device,
             JSONArray services,
             @RpcDefault(value = "0"
-            ) Integer channelId) throws Throwable {
+     ) Integer channelId) throws Throwable {
         WifiP2pManager.Channel channel = checkAndGetChannel(channelId);
         List<String> serviceList = new ArrayList<String>();
         for (int i = 0; i < services.length(); i++) {
