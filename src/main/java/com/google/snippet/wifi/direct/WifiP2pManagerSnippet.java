@@ -165,8 +165,8 @@ public class WifiP2pManagerSnippet implements Snippet {
     }
 
     /**
-     * Initialize an extra Wi-Fi P2P channel. This is needed when you need to test with
-     * multiple channels.
+     * Initialize an extra Wi-Fi P2P channel. This is needed when you need to test with multiple
+     * channels.
      *
      * @return The id of the new channel
      */
@@ -402,7 +402,7 @@ public class WifiP2pManagerSnippet implements Snippet {
     public void wifiP2pRequestPersistentGroupInfo(
             String callbackId,
             @RpcDefault(value = "0"
-    ) Integer channelId) throws Throwable {
+            ) Integer channelId) throws Throwable {
         WifiP2pManager.Channel channel = checkAndGetChannel(channelId);
         mP2pManager.requestPersistentGroupInfo(channel,
                 new PersistentGroupInfoListener(callbackId));
@@ -429,7 +429,7 @@ public class WifiP2pManagerSnippet implements Snippet {
             String device,
             JSONArray services,
             @RpcDefault(value = "0"
-     ) Integer channelId) throws Throwable {
+            ) Integer channelId) throws Throwable {
         WifiP2pManager.Channel channel = checkAndGetChannel(channelId);
         List<String> serviceList = new ArrayList<String>();
         for (int i = 0; i < services.length(); i++) {
@@ -607,17 +607,18 @@ public class WifiP2pManagerSnippet implements Snippet {
     @Rpc(description = "Close all P2P connections and indicate to the P2P service that"
             + " connections created by the app can be removed.")
     public void p2pClose() {
-        mChannels.forEach((key, channel) -> {
+        for (HashMap.Entry<Integer, WifiP2pManager.Channel> entry : mChannels.entrySet()) {
+            WifiP2pManager.Channel channel = entry.getValue();
             if (channel != null) {
                 mP2pManager.clearServiceRequests(channel, null);
                 mP2pManager.setDnsSdResponseListeners(channel, null, null);
                 mP2pManager.setUpnpServiceResponseListener(channel, null);
                 mP2pManager.clearLocalServices(channel, null);
                 channel.close();
-                channel = null;
             }
-        });
+        }
         mChannels.clear();
+        mChannelCnt = 0;
         if (mStateChangedReceiver != null) {
             mContext.unregisterReceiver(mStateChangedReceiver);
             mStateChangedReceiver = null;
@@ -841,6 +842,7 @@ public class WifiP2pManagerSnippet implements Snippet {
         }
         WifiP2pManager.Channel channel = mChannels.get(channelId);
         if (channel == null) {
+            Log.e(TAG + ": checkAndGetChannel : channel keys" + mChannels.keySet());
             throw new WifiP2pManagerException(
                     "The channelId " + channelId + " is wrong. Please use the channelId returned "
                             + "by calling `wifiP2pInitialize` or `wifiP2pInitExtraChannel`.");
