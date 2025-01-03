@@ -18,6 +18,10 @@ package com.google.snippet.wifi.direct;
 
 import android.net.MacAddress;
 import android.net.wifi.p2p.WifiP2pConfig;
+import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
+import android.net.wifi.p2p.nsd.WifiP2pServiceRequest;
+import android.net.wifi.p2p.nsd.WifiP2pUpnpServiceRequest;
+import android.text.TextUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -26,12 +30,16 @@ import org.json.JSONObject;
 public class JsonDeserializer {
     private static final String PERSISTENT_MODE = "persistent_mode";
     private static final String DEVICE_ADDRESS = "device_address";
-    private static final String GROUP_CLIENT_IP_PROVISIONING_MODE =
-            "group_client_ip_provisioning_mode";
+    private static final String GROUP_CLIENT_IP = "group_client_ip_provisioning_mode";
     private static final String GROUP_OPERATING_BAND = "group_operating_band";
     private static final String GROUP_OPERATING_FREQUENCY = "group_operating_frequency";
     private static final String NETWORK_NAME = "network_name";
     private static final String PASSPHRASE = "passphrase";
+    private static final String PROTOCOL_TYPE = "protocol_type";
+    private static final String INSTANCE_CREATE_TYPE = "instance_create_type";
+    private static final String SERVICE_TYPE = "service_type";
+    private static final String INSTANCE_NAME = "instance_name";
+
 
     /** Converts Python dict to android.net.wifi.p2p.WifiP2pConfig. */
     public static WifiP2pConfig jsonToWifiP2pConfig(JSONObject jsonObject) throws JSONException {
@@ -53,9 +61,8 @@ public class JsonDeserializer {
         if (jsonObject.has(DEVICE_ADDRESS)) {
             builder.setDeviceAddress(MacAddress.fromString(jsonObject.getString(DEVICE_ADDRESS)));
         }
-        if (jsonObject.has(GROUP_CLIENT_IP_PROVISIONING_MODE)) {
-            builder.setGroupClientIpProvisioningMode(
-                    jsonObject.getInt(GROUP_CLIENT_IP_PROVISIONING_MODE));
+        if (jsonObject.has(GROUP_CLIENT_IP)) {
+            builder.setGroupClientIpProvisioningMode(jsonObject.getInt(GROUP_CLIENT_IP));
         }
         if (jsonObject.has(GROUP_OPERATING_BAND)) {
             builder.setGroupOperatingBand(jsonObject.getInt(GROUP_OPERATING_BAND));
@@ -70,5 +77,47 @@ public class JsonDeserializer {
             builder.setPassphrase(jsonObject.getString(PASSPHRASE));
         }
         return builder.build();
+    }
+
+    /**
+     * Converts Python dict to android.net.wifi.p2p.nsd.WifiP2pServiceRequest.
+     */
+    public static WifiP2pServiceRequest jsonToWifiP2pServiceRequest(JSONObject jsonObject)
+            throws JSONException {
+        if (jsonObject == null) {
+            throw new JSONException("jsonObject is null,please call jsonToWifiP2pServiceRequest"
+                    + " with a valid JSONObject");
+        }
+        // If both are included, an error is returned.
+        if (jsonObject.has(INSTANCE_CREATE_TYPE) && jsonObject.has(PROTOCOL_TYPE)) {
+            throw new JSONException("Both instance_create_type and protocol_type are included.");
+        }
+
+        if (jsonObject.has(INSTANCE_CREATE_TYPE)) {
+            String instanceCreateType = jsonObject.getString(INSTANCE_CREATE_TYPE);
+            String serviceType = jsonObject.optString(SERVICE_TYPE);
+            if (instanceCreateType.equals("WifiP2pUpnpServiceRequest")) {
+                if (TextUtils.isEmpty(serviceType)) {
+                    return WifiP2pUpnpServiceRequest.newInstance();
+                } else {
+                    return WifiP2pUpnpServiceRequest.newInstance(serviceType);
+                }
+            } else if (instanceCreateType.equals("WifiP2pDnsSdServiceRequest")) {
+                String instanceName = jsonObject.optString(INSTANCE_NAME);
+                if (!TextUtils.isEmpty(serviceType) && !TextUtils.isEmpty(instanceName)) {
+                    return WifiP2pDnsSdServiceRequest.newInstance(instanceName, serviceType);
+                } else if (!TextUtils.isEmpty(serviceType)) {
+                    return WifiP2pDnsSdServiceRequest.newInstance(serviceType);
+                } else {
+                    return WifiP2pDnsSdServiceRequest.newInstance();
+                }
+            } else {
+                throw new JSONException("instance_create_type is not valid.");
+            }
+        } else if (jsonObject.has(PROTOCOL_TYPE)) {
+            return WifiP2pServiceRequest.newInstance(jsonObject.getInt(PROTOCOL_TYPE));
+        } else {
+            throw new JSONException("instance_create_type or protocol_type is not included.");
+        }
     }
 }
