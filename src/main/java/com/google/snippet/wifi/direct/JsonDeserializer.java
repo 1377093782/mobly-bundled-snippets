@@ -21,7 +21,6 @@ import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
 import android.net.wifi.p2p.nsd.WifiP2pServiceRequest;
 import android.net.wifi.p2p.nsd.WifiP2pUpnpServiceRequest;
-import android.text.TextUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -37,8 +36,6 @@ public class JsonDeserializer {
     private static final String PASSPHRASE = "passphrase";
     private static final String PROTOCOL_TYPE = "protocol_type";
     private static final String INSTANCE_CREATE_TYPE = "instance_create_type";
-    private static final String SERVICE_TYPE = "service_type";
-    private static final String INSTANCE_NAME = "instance_name";
 
 
     /** Converts Python dict to android.net.wifi.p2p.WifiP2pConfig. */
@@ -95,22 +92,10 @@ public class JsonDeserializer {
 
         if (jsonObject.has(INSTANCE_CREATE_TYPE)) {
             String instanceCreateType = jsonObject.getString(INSTANCE_CREATE_TYPE);
-            String serviceType = jsonObject.optString(SERVICE_TYPE);
             if (instanceCreateType.equals("WifiP2pUpnpServiceRequest")) {
-                if (TextUtils.isEmpty(serviceType)) {
-                    return WifiP2pUpnpServiceRequest.newInstance();
-                } else {
-                    return WifiP2pUpnpServiceRequest.newInstance(serviceType);
-                }
+                return WifiP2pUpnpServiceRequest.newInstance();
             } else if (instanceCreateType.equals("WifiP2pDnsSdServiceRequest")) {
-                String instanceName = jsonObject.optString(INSTANCE_NAME);
-                if (!TextUtils.isEmpty(serviceType) && !TextUtils.isEmpty(instanceName)) {
-                    return WifiP2pDnsSdServiceRequest.newInstance(instanceName, serviceType);
-                } else if (!TextUtils.isEmpty(serviceType)) {
-                    return WifiP2pDnsSdServiceRequest.newInstance(serviceType);
-                } else {
-                    return WifiP2pDnsSdServiceRequest.newInstance();
-                }
+                return WifiP2pDnsSdServiceRequest.newInstance();
             } else {
                 throw new JSONException("instance_create_type is not valid.");
             }

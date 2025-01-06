@@ -32,9 +32,11 @@ import android.net.wifi.p2p.WifiP2pGroupList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
+import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
 import android.net.wifi.p2p.nsd.WifiP2pServiceInfo;
 import android.net.wifi.p2p.nsd.WifiP2pServiceRequest;
 import android.net.wifi.p2p.nsd.WifiP2pUpnpServiceInfo;
+import android.net.wifi.p2p.nsd.WifiP2pUpnpServiceRequest;
 import android.os.Bundle;
 import android.widget.Button;
 
@@ -526,18 +528,45 @@ public class WifiP2pManagerSnippet implements Snippet {
         waitActionListenerResult(callbackId);
     }
 
+    /** "Add a service Upnp discovery request. */
+    @Rpc(description = "Add a service Upnp discovery request.")
+    public Integer wifiP2pAddUpnpServiceRequest(@RpcDefault(value = "0") Integer channelId)
+            throws Throwable {
+        WifiP2pManager.Channel channel = checkAndGetChannel(channelId);
+
+        WifiP2pUpnpServiceRequest request = WifiP2pUpnpServiceRequest.newInstance();
+        mServiceRequestCnt += 1;
+        mServiceRequests.put(mServiceRequestCnt, request);
+
+        String callbackId = UUID.randomUUID().toString();
+        mP2pManager.addServiceRequest(channel, request, new ActionListener(callbackId));
+        verifyActionListenerSucceed(callbackId);
+        return mServiceRequestCnt;
+    }
+
+    /** "Add a service Bonjour discovery request. */
+    @Rpc(description = "Add a service Bonjour discovery request.")
+    public Integer wifiP2pAddBonjourServiceRequest(@RpcDefault(value = "0") Integer channelId)
+            throws Throwable {
+        WifiP2pManager.Channel channel = checkAndGetChannel(channelId);
+
+        WifiP2pDnsSdServiceRequest request = WifiP2pDnsSdServiceRequest.newInstance();
+        mServiceRequestCnt += 1;
+        mServiceRequests.put(mServiceRequestCnt, request);
+
+        String callbackId = UUID.randomUUID().toString();
+        mP2pManager.addServiceRequest(channel, request, new ActionListener(callbackId));
+        verifyActionListenerSucceed(callbackId);
+        return mServiceRequestCnt;
+    }
+
     /** Remove a service discovery request. */
     @Rpc(description = "Remove a service discovery request.")
     public void wifiP2pRemoveServiceRequest(int index, @RpcDefault(value = "0") Integer channelId)
             throws Throwable {
         WifiP2pManager.Channel channel = checkAndGetChannel(channelId);
         String callbackId = UUID.randomUUID().toString();
-        WifiP2pServiceRequest serviceRequest = mServiceRequests.remove(index);
-        if (serviceRequest == null) {
-            throw new WifiP2pManagerException("Service request not found. Please call `wifiP2pAdd"
-                    + "ServiceRequest` to add a service request first.");
-        }
-        mP2pManager.removeServiceRequest(channel, serviceRequest,
+        mP2pManager.removeServiceRequest(channel, mServiceRequests.remove(index),
                 new ActionListener(callbackId));
         verifyActionListenerSucceed(callbackId);
     }
@@ -592,29 +621,14 @@ public class WifiP2pManagerSnippet implements Snippet {
         mP2pManager.setDnsSdResponseListeners(channel, null, null);
     }
 
-    /**
-     *  Initiate service discovery.
-     * @param channelId The channel ID to use.
-     * @param verifySucceed Whether to verify the action listener succeeded.
-     *                      If the action listener failed, the return value is the reason code.
-     *                      If the action listener succeeded, the return value is -1.
-     * @return The reason code if the action listener failed, -1 if the action listener succeeded.
-     * */
+    /** Initiate service discovery. */
     @Rpc(description = "Initiate service discovery.")
-    public int wifiP2pDiscoverServices(
-            @RpcDefault(value = "0") Integer channelId,
-            @RpcDefault(value = "true") Boolean verifySucceed
-    ) throws Throwable {
+    public void wifiP2pDiscoverServices(@RpcDefault(value = "0") Integer channelId)
+            throws Throwable {
         WifiP2pManager.Channel channel = checkAndGetChannel(channelId);
         String callbackId = UUID.randomUUID().toString();
         mP2pManager.discoverServices(channel, new ActionListener(callbackId));
-        if (verifySucceed) {
-            verifyActionListenerSucceed(callbackId);
-            return -1;
-        } else {
-            return verifyActionListenerFailed(callbackId);
-        }
-
+        verifyActionListenerSucceed(callbackId);
     }
 
     /**
@@ -902,24 +916,6 @@ public class WifiP2pManagerSnippet implements Snippet {
                     "Action failed with reason code: " + eventData.getInt(EVENT_KEY_REASON));
         }
         throw new WifiP2pManagerException("Action got unknown event: " + eventData.toString());
-    }
-
-    /**
-     * Wait until any callback of {@link ActionListener} is triggered and verify it failed.
-     *
-     * @return reason code of the failure.
-     */
-    private int verifyActionListenerFailed(String callbackId) throws Throwable {
-        Bundle eventData = waitActionListenerResult(callbackId);
-        String result = eventData.getString(EVENT_KEY_CALLBACK_NAME);
-        if (ACTION_LISTENER_ON_FAILURE.equals(result)) {
-            return eventData.getInt(EVENT_KEY_REASON);
-        }
-
-        if (ACTION_LISTENER_ON_SUCCESS.equals(result)) {
-            throw new WifiP2pManagerException("Action succeeded, but expected failure");
-        }
-        return -1;
     }
 
     private static SnippetEvent waitForSnippetEvent(String callbackId, String eventName,
