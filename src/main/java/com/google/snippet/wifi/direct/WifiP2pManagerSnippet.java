@@ -201,37 +201,6 @@ public class WifiP2pManagerSnippet implements Snippet {
         String callbackId = UUID.randomUUID().toString();
         mP2pManager.discoverPeers(channel, new ActionListener(callbackId));
         verifyActionListenerSucceed(callbackId);
-
-    }
-
-    /**
-     * Initiate peer discovery. A discovery process involves scanning for available Wi-Fi peers for
-     * the purpose of establishing a connection.
-     *
-     * @throws Throwable If this failed to initiate discovery, or the action timed out.
-     */
-    @AsyncRpc(
-            description = "Initiate peer discovery. A discovery process involves scanning for "
-                    + "available Wi-Fi peers for the purpose of establishing a connection.")
-    public void wifiP2pDiscoverPeersAsync(
-            String callbackId, @RpcDefault(value = "0") Integer channelId) throws Throwable {
-        WifiP2pManager.Channel channel = checkAndGetChannel(channelId);
-        mP2pManager.discoverPeers(channel, new ActionListener(callbackId));
-    }
-
-    /**
-     * Initiate peer discovery. A discovery process involves scanning for available Wi-Fi peers for
-     * the purpose of establishing a connection.
-     *
-     * @throws Throwable If this failed to initiate discovery, or the action timed out.
-     */
-    @Rpc(
-            description = "Initiate peer discovery. A discovery process involves scanning for "
-                    + "available Wi-Fi peers for the purpose of establishing a connection.")
-    public void wifiP2pDiscoverPeersNoCallback(
-            @RpcDefault(value = "0") Integer channelId) throws Throwable {
-        WifiP2pManager.Channel channel = checkAndGetChannel(channelId);
-        mP2pManager.discoverPeers(channel, null);
     }
 
     /** Request peers that are discovered for wifi p2p. */
@@ -240,24 +209,6 @@ public class WifiP2pManagerSnippet implements Snippet {
             throws Throwable {
         WifiP2pManager.Channel channel = checkAndGetChannel(channelId);
         mP2pManager.requestPeers(channel, new PeerListListener(callbackId));
-    }
-
-    /** Add a service discovery request. */
-    @Rpc(description = "Add a service discovery request.")
-    public Integer wifiP2pAddServiceRequest(
-            JSONObject jsonObject, @RpcDefault(value = "0") Integer channelId) throws Throwable {
-        WifiP2pManager.Channel channel = checkAndGetChannel(channelId);
-        WifiP2pServiceRequest request = JsonDeserializer.jsonToWifiP2pServiceRequest(jsonObject);
-        if (request == null) {
-            throw new WifiP2pManagerException("Failed to parse the service request from JSON.");
-        }
-        mServiceRequestCnt += 1;
-        mServiceRequests.put(mServiceRequestCnt, request);
-
-        String callbackId = UUID.randomUUID().toString();
-        mP2pManager.addServiceRequest(channel, request, new ActionListener(callbackId));
-        verifyActionListenerSucceed(callbackId);
-        return mServiceRequestCnt;
     }
 
     /**
@@ -450,7 +401,7 @@ public class WifiP2pManagerSnippet implements Snippet {
     public void wifiP2pRequestPersistentGroupInfo(
             String callbackId,
             @RpcDefault(value = "0"
-            ) Integer channelId) throws Throwable {
+    ) Integer channelId) throws Throwable {
         WifiP2pManager.Channel channel = checkAndGetChannel(channelId);
         mP2pManager.requestPersistentGroupInfo(channel,
                 new PersistentGroupInfoListener(callbackId));
@@ -477,7 +428,7 @@ public class WifiP2pManagerSnippet implements Snippet {
             String device,
             JSONArray services,
             @RpcDefault(value = "0"
-            ) Integer channelId) throws Throwable {
+     ) Integer channelId) throws Throwable {
         WifiP2pManager.Channel channel = checkAndGetChannel(channelId);
         List<String> serviceList = new ArrayList<String>();
         for (int i = 0; i < services.length(); i++) {
@@ -526,6 +477,23 @@ public class WifiP2pManagerSnippet implements Snippet {
         String callbackId = UUID.randomUUID().toString();
         mP2pManager.clearLocalServices(channel, new ActionListener(callbackId));
         waitActionListenerResult(callbackId);
+    }
+
+    /** Add a service discovery request. */
+    @Rpc(description = "Add a service discovery request.")
+    public Integer wifiP2pAddServiceRequest(
+            int protocolType, @RpcDefault(value = "0") Integer channelId
+    ) throws Throwable {
+        WifiP2pManager.Channel channel = checkAndGetChannel(channelId);
+
+        WifiP2pServiceRequest request = WifiP2pServiceRequest.newInstance(protocolType);
+        mServiceRequestCnt += 1;
+        mServiceRequests.put(mServiceRequestCnt, request);
+
+        String callbackId = UUID.randomUUID().toString();
+        mP2pManager.addServiceRequest(channel, request, new ActionListener(callbackId));
+        verifyActionListenerSucceed(callbackId);
+        return mServiceRequestCnt;
     }
 
     /** "Add a service Upnp discovery request. */
