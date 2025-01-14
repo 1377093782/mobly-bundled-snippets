@@ -27,6 +27,7 @@ import android.net.wifi.aware.SubscribeConfig;
 import android.net.wifi.aware.WifiAwareDataPathSecurityConfig;
 import android.net.wifi.aware.WifiAwareNetworkSpecifier;
 import android.net.wifi.rtt.RangingRequest;
+import android.util.Base64;
 
 import androidx.annotation.NonNull;
 
@@ -50,6 +51,7 @@ public class WifiAwareJsonDeserializer {
     private static final String SERVICE_NAME = "service_name";
     private static final String SERVICE_SPECIFIC_INFO = "service_specific_info";
     private static final String MATCH_FILTER = "match_filter";
+    private static final String MATCH_FILTER_LIST = "MatchFilterList";
     private static final String SUBSCRIBE_TYPE = "subscribe_type";
     private static final String TERMINATE_NOTIFICATION_ENABLED = "terminate_notification_enabled";
     private static final String MAX_DISTANCE_MM = "max_distance_mm";
@@ -74,6 +76,7 @@ public class WifiAwareJsonDeserializer {
     private static final String PORT = "port";
     private static final String TRANSPORT_PROTOCOL = "transport_protocol";
     private static final String DATA_PATH_SECURITY_CONFIG = "data_path_security_config";
+    private static final String CHANNEL_FREQUENCY_M_HZ = "channel_frequency_m_hz";
     //NetworkRequest specific
     private static final String TRANSPORT_TYPE = "transport_type";
     private static final String CAPABILITY = "capability";
@@ -124,6 +127,14 @@ public class WifiAwareJsonDeserializer {
                         .getBytes(StandardCharsets.UTF_8));
             }
             builder.setMatchFilter(matchFilter);
+        }
+        if (jsonObject.has(MATCH_FILTER_LIST)) {
+            byte[] bytes = Base64.decode(
+                    jsonObject.getString(MATCH_FILTER_LIST).getBytes(StandardCharsets.UTF_8),
+                     Base64.DEFAULT);
+
+            List<byte[]> mf = new TlvBufferUtils.TlvIterable(0, 1, bytes).toList();
+            builder.setMatchFilter(mf);
         }
         if (jsonObject.has(SUBSCRIBE_TYPE)) {
             int subscribeType = jsonObject.getInt(SUBSCRIBE_TYPE);
@@ -215,6 +226,13 @@ public class WifiAwareJsonDeserializer {
                         .getBytes(StandardCharsets.UTF_8));
             }
             builder.setMatchFilter(matchFilter);
+        }
+        if (jsonObject.has(MATCH_FILTER_LIST)) {
+            byte[] bytes = Base64.decode(
+                    jsonObject.getString(MATCH_FILTER_LIST).getBytes(StandardCharsets.UTF_8),
+                     Base64.DEFAULT);
+            List<byte[]> mf = new TlvBufferUtils.TlvIterable(0, 1, bytes).toList();
+            builder.setMatchFilter(mf);
         }
         if (jsonObject.has(PUBLISH_TYPE)) {
             int publishType = jsonObject.getInt(PUBLISH_TYPE);
@@ -313,6 +331,9 @@ public class WifiAwareJsonDeserializer {
         if (jsonObject.has(DATA_PATH_SECURITY_CONFIG)) {
             builder.setDataPathSecurityConfig(jsonToDataPathSSecurityConfig(
                     jsonObject.getJSONObject(DATA_PATH_SECURITY_CONFIG)));
+        }
+        if (jsonObject.has(CHANNEL_FREQUENCY_M_HZ)) {
+            builder.setChannelFrequencyMhz(jsonObject.getInt(CHANNEL_FREQUENCY_M_HZ), true);
         }
 
         return builder.build();

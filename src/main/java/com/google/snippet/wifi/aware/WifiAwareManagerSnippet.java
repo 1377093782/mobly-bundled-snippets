@@ -109,7 +109,7 @@ public class WifiAwareManagerSnippet implements Snippet {
      * Returns whether Wi-Fi Aware is supported.
      */
     @Rpc(description = "Is Wi-Fi Aware supported.")
-    public boolean wifiAwareIstSupported() {
+    public boolean wifiAwareIsSupported() {
         return mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_AWARE);
     }
 
@@ -117,7 +117,7 @@ public class WifiAwareManagerSnippet implements Snippet {
      * Returns whether Wi-Fi RTT is supported.
      */
     @Rpc(description = "Is Wi-Fi RTT supported.")
-    public boolean wifiAwareIsWiFiRttSupported() {
+    public boolean wifiAwareIsRttSupported() {
         return mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_RTT);
     }
 
@@ -661,11 +661,14 @@ public class WifiAwareManagerSnippet implements Snippet {
                     + "request"
     )
     public String wifiAwareCreateNetworkSpecifier(
-            String discoverySessionId, int peerId, boolean isAcceptAnyPeer,
+            String discoverySessionId, Integer peerId, boolean isAcceptAnyPeer,
             @RpcOptional JSONObject jsonObject
     ) throws JSONException, WifiAwareManagerSnippetException {
         DiscoverySession session = getDiscoverySession(discoverySessionId);
-        PeerHandle handle = getPeerHandler(peerId);
+        PeerHandle handle = null;
+        if (peerId != null){
+        handle = getPeerHandler(peerId);
+        }
         WifiAwareNetworkSpecifier.Builder builder;
         if (isAcceptAnyPeer) {
             builder = new WifiAwareNetworkSpecifier.Builder((PublishDiscoverySession) session);
@@ -800,8 +803,10 @@ public class WifiAwareManagerSnippet implements Snippet {
                 RangingResult result = results.get(i);
                 resultBundles[i] = new Bundle();
                 resultBundles[i].putInt("status", result.getStatus());
-                resultBundles[i].putInt("distanceMm", result.getDistanceMm());
-                resultBundles[i].putInt("rssi", result.getRssi());
+                if (result.getStatus() == RangingResult.STATUS_SUCCESS) {
+                    resultBundles[i].putInt("distanceMm", result.getDistanceMm());
+                    resultBundles[i].putInt("rssi", result.getRssi());
+                }
                 PeerHandle peer = result.getPeerHandle();
                 if (peer != null) {
                     resultBundles[i].putInt("peerId", peer.hashCode());
@@ -814,6 +819,17 @@ public class WifiAwareManagerSnippet implements Snippet {
             event.getData().putParcelableArray("results", resultBundles);
             mEventCache.postEvent(event);
         }
+    }
+
+    /**
+     * Return whether this device supports setting a channel requirement in a data-path request.
+     */
+    @Rpc(
+            description = "Return whether this device supports setting a channel requirement in a "
+                + "data-path request."
+    )
+    public boolean wifiAwareIsSetChannelOnDataPathSupported() {
+        return mWifiAwareManager.isSetChannelOnDataPathSupported();
     }
 
 }
